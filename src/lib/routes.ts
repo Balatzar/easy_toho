@@ -13,7 +13,7 @@ export function imaxHref(date: string): string {
   return `/imax?${params}`;
 }
 
-export function movieHref(movieCode: string, date: string): string {
+export function movieHref(movieId: string, date: string): string {
   const params = new URLSearchParams({ date });
-  return `/movies/${encodeURIComponent(movieCode)}?${params}`;
+  return `/movies/${encodeURIComponent(movieId)}?${params}`;
 }

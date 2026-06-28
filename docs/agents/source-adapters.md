@@ -1,0 +1,97 @@
+# Source Adapters
+
+Use this when adding a new cinema schedule website or a new cinema from an existing website.
+
+## Read first
+
+- `CONTEXT.md` for domain vocabulary.
+- `docs/adr/0009-source-adapters-and-conservative-movie-identity.md` for the adapter decision.
+- `src/lib/schedule-model.ts` for the universal object contract.
+- `src/lib/schedules.ts` for the adapter facade.
+- `src/lib/toho-adapter.ts`, `src/lib/smt-adapter.ts`, and
+  `src/lib/tjoy-adapter.ts` as implementation examples.
+- The relevant Next.js docs under `node_modules/next/dist/docs/` before changing caching or data-fetching behavior.
+
+## Adapter boundary
+
+Each adapter returns the same app-level objects:
+
+- `PlanningDay[]`
+- `ScheduleResult`
+- `MovieCard`
+- `Showtime`
+
+Keep provider-specific details inside the adapter:
+
+- raw provider ids
+- request URLs and URL conventions
+- raw response shapes
+- source-specific availability/status codes
+- parsing quirks
+- source-specific date formats
+
+Do not add source-specific fields to the universal model unless the UI or aggregators can use them for every source.
+
+## Availability
+
+Map raw source statuses to `ShowtimeAvailability` for app logic:
+
+- `available`
+- `limited`
+- `soldOut`
+- `notSelling`
+- `unknown`
+
+Also preserve the reader-facing source label in `availabilityLabel`, for example `A · Plenty` or `◎余裕あり`.
+
+## Movie identity
+
+Adapters should call `movieIdentityId` from `schedule-model.ts`.
+
+The current rule intentionally favors avoiding false merges:
+
+- normalize the English label
+- remove source markers such as `Sub/`, `Dub/`, premium formats, and compact sequel spacing
+- include runtime when available, but cross-cinema aggregation may tolerate
+  small runtime differences for the same normalized English label
+- merge variants such as subtitled, dubbed, premium format, and special events only when the base film identity is clear
+- fallback unmatched non-English films to a source-scoped id
+
+Do not trust provider movie ids for cross-source matching.
+
+## Adding a cinema from an existing source
+
+1. Confirm the provider website and theater identifiers from the live source.
+2. Add the cinema to `CINEMA_CONFIGS` in `src/lib/cinemas.ts`.
+3. Keep `name` user-facing and source-clear, for example `Hibiya Toho` or `Shinjuku Piccadilly`.
+4. Set the private adapter config fields required by that adapter.
+5. Verify the single-cinema page for at least one date with real showtimes.
+6. Verify `/movies` if the cinema has English-watchable films for that date.
+
+## Adding a new source
+
+1. Create `src/lib/<source>-adapter.ts`.
+2. Implement `getPlanningDays(config)` and `getSchedule(config, selectedDate)`.
+3. Return only universal model objects from `schedule-model.ts`.
+4. Add a private config type and source entry in `src/lib/cinemas.ts`.
+5. Add a case to `src/lib/schedules.ts`.
+6. Reuse shared helpers from `schedule-model.ts` for language, format, identity, sorting, dates, and past-showtime filtering where possible.
+7. If the source needs new shared behavior, add it to `schedule-model.ts` only when it remains source-neutral.
+
+## Verification
+
+Run:
+
+```bash
+npm run lint
+npm run build
+```
+
+Use `agent-browser` to test:
+
+- a single-cinema page for the new source
+- `/movies?date=<date>` when the source has English-watchable films
+- a movie detail page that should merge with another source, if one exists
+- `/imax?date=<date>` if the source has IMAX-capable cinemas or should not affect the current IMAX list
+
+Check browser errors after navigation. Console dev/HMR noise is acceptable in local development; app exceptions are not.

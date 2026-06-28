@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Easy Toho",
-  description: "English-first TOHO Cinemas showtimes in Tokyo.",
+  description: "English-first cinema showtimes in Tokyo.",
 };
 
 export default function RootLayout({

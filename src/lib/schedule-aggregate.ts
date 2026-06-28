@@ -5,7 +5,10 @@ import {
   type Showtime,
   getSchedule,
   isImaxScreening,
-} from "./toho";
+} from "./schedules";
+import { toHalfWidth } from "./schedule-model";
+
+const RUNTIME_MATCH_TOLERANCE_MINUTES = 3;
 
 export type CinemaScheduleFailure = {
   cinema: Cinema;
@@ -62,24 +65,27 @@ type LoadedCinemaSchedule = {
   cards: MovieCard[];
 };
 
-type TokyoScheduleResult = {
+type MultiCinemaScheduleResult = {
   loaded: LoadedCinemaSchedule[];
   failedCinemas: CinemaScheduleFailure[];
 };
 
 type MovieAccumulator = EnglishWatchableMovie & {
   earliestEnglishMinutes: number;
+  runtimeMinutes: number | null;
+  titleKey: string | null;
 };
 
 type ImaxMovieAccumulator = Omit<ImaxAvailableMovie, "cinemas"> & {
   cinemas: ImaxAvailableMovieCinema[];
   earliestImaxMinutes: number;
+  titleKey: string | null;
 };
 
 export async function getEnglishWatchableMovies(
   selectedDate: string,
 ): Promise<EnglishWatchableMoviesResult> {
-  const schedules = await getTokyoCinemaSchedules(selectedDate);
+  const schedules = await getCinemaSchedules(selectedDate);
   const movies = new Map<string, MovieAccumulator>();
 
   for (const schedule of schedules.loaded) {
@@ -91,7 +97,7 @@ export async function getEnglishWatchableMovies(
       if (englishShowtimes.length === 0) continue;
 
       const earliestEnglishMinutes = earliestMinutes(englishShowtimes);
-      const existing = movies.get(card.id);
+      const existing = findMatchingAccumulator(movies.values(), card);
 
       if (!existing) {
         movies.set(card.id, {
@@ -99,6 +105,8 @@ export async function getEnglishWatchableMovies(
           title: card.title,
           artworkUrl: card.artworkUrl,
           earliestEnglishMinutes,
+          runtimeMinutes: card.runtimeMinutes,
+          titleKey: movieTitleKey(card),
         });
         continue;
       }
@@ -109,6 +117,7 @@ export async function getEnglishWatchableMovies(
       );
       existing.title = shortestLabel(existing.title, card.title);
       existing.artworkUrl ??= card.artworkUrl;
+      existing.runtimeMinutes ??= card.runtimeMinutes;
     }
   }
 
@@ -131,7 +140,7 @@ export async function getEnglishWatchableMovies(
 export async function getImaxAvailableMovies(
   selectedDate: string,
 ): Promise<ImaxAvailableMoviesResult> {
-  const schedules = await getTokyoCinemaSchedules(
+  const schedules = await getCinemaSchedules(
     selectedDate,
     IMAX_CAPABLE_CINEMAS,
   );
@@ -155,7 +164,7 @@ export async function getImaxAvailableMovies(
         otherShowtimes,
       };
       const earliestImaxMinutes = earliestMinutes(imaxShowtimes);
-      const existing = movies.get(card.id);
+      const existing = findMatchingAccumulator(movies.values(), card);
 
       if (!existing) {
         movies.set(card.id, {
@@ -166,6 +175,7 @@ export async function getImaxAvailableMovies(
           rating: card.rating,
           cinemas: [projectionCinema],
           earliestImaxMinutes,
+          titleKey: movieTitleKey(card),
         });
         continue;
       }
@@ -202,16 +212,32 @@ export async function getImaxAvailableMovies(
 }
 
 export async function getMovieProjectionList(
-  movieCode: string,
+  movieId: string,
   selectedDate: string,
 ): Promise<MovieProjectionResult> {
-  const schedules = await getTokyoCinemaSchedules(selectedDate);
+  const schedules = await getCinemaSchedules(selectedDate);
+  const projections = schedules.loaded.flatMap((schedule) =>
+    schedule.cards.map((card) => ({
+      cinema: schedule.cinema,
+      card,
+    })),
+  );
+  const seedCard = projections.find((projection) => projection.card.id === movieId)
+    ?.card;
   const cinemas: MovieProjectionCinema[] = [];
   let movie: EnglishWatchableMovie | null = null;
 
-  for (const schedule of schedules.loaded) {
-    const card = schedule.cards.find((item) => item.id === movieCode);
-    if (!card) continue;
+  if (!seedCard) {
+    return {
+      movie,
+      cinemas,
+      failedCinemas: schedules.failedCinemas,
+    };
+  }
+
+  for (const projection of projections) {
+    const { card } = projection;
+    if (!sameMovieCard(seedCard, card)) continue;
 
     const englishShowtimes = card.showtimes.filter(
       (showtime) => showtime.language === "english",
@@ -221,7 +247,7 @@ export async function getMovieProjectionList(
     );
 
     cinemas.push({
-      cinema: schedule.cinema,
+      cinema: projection.cinema,
       card,
       englishShowtimes,
       otherShowtimes,
@@ -246,10 +272,10 @@ export async function getMovieProjectionList(
   };
 }
 
-async function getTokyoCinemaSchedules(
+async function getCinemaSchedules(
   selectedDate: string,
   cinemas: Cinema[] = TOKYO_CINEMAS,
-): Promise<TokyoScheduleResult> {
+): Promise<MultiCinemaScheduleResult> {
   const results = await Promise.all(
     cinemas.map(async (cinema) => {
       const schedule = await getSchedule(cinema, selectedDate);
@@ -257,7 +283,7 @@ async function getTokyoCinemaSchedules(
     }),
   );
 
-  return results.reduce<TokyoScheduleResult>(
+  return results.reduce<MultiCinemaScheduleResult>(
     (aggregate, result) => {
       if (isLoadedSchedule(result.schedule)) {
         aggregate.loaded.push({
@@ -326,4 +352,78 @@ function timeToMinutes(time: string): number {
 
 function shortestLabel(current: string, next: string): string {
   return next.length < current.length ? next : current;
+}
+
+function findMatchingAccumulator<
+  T extends {
+    id: string;
+    runtimeMinutes: number | null;
+    titleKey: string | null;
+  },
+>(movies: Iterable<T>, card: MovieCard): T | undefined {
+  for (const movie of movies) {
+    if (sameMovieIdentity(movie, card)) return movie;
+  }
+
+  return undefined;
+}
+
+function sameMovieCard(seed: MovieCard, candidate: MovieCard): boolean {
+  if (seed.id === candidate.id) return true;
+
+  const seedTitleKey = movieTitleKey(seed);
+  const candidateTitleKey = movieTitleKey(candidate);
+
+  return (
+    !!seedTitleKey &&
+    seedTitleKey === candidateTitleKey &&
+    runtimesMatch(seed.runtimeMinutes, candidate.runtimeMinutes)
+  );
+}
+
+function sameMovieIdentity(
+  movie: {
+    id: string;
+    runtimeMinutes: number | null;
+    titleKey: string | null;
+  },
+  card: MovieCard,
+): boolean {
+  if (movie.id === card.id) return true;
+
+  const cardTitleKey = movieTitleKey(card);
+  return (
+    !!movie.titleKey &&
+    movie.titleKey === cardTitleKey &&
+    runtimesMatch(movie.runtimeMinutes, card.runtimeMinutes)
+  );
+}
+
+function runtimesMatch(
+  current: number | null,
+  next: number | null,
+): boolean {
+  if (!current || !next) return true;
+  return Math.abs(current - next) <= RUNTIME_MATCH_TOLERANCE_MINUTES;
+}
+
+function movieTitleKey(card: MovieCard): string | null {
+  return (
+    card.rawEnglishLabels
+      .map(normalizeEnglishLabelForMerge)
+      .filter(Boolean)
+      .sort((a, b) => a.length - b.length)[0] ?? null
+  );
+}
+
+function normalizeEnglishLabelForMerge(label: string): string {
+  return toHalfWidth(label)
+    .replace(/^\s*(SUB|DUB|JP\s*SUB)\s*[/:]\s*/i, "")
+    .replace(/\s*\/\s*(SUB|DUB|ENGLISH\s*SUBTITLES?|JAPANESE\s*SUBTITLES?).*$/i, "")
+    .replace(/\b(SCREEN\s*X|SCREENX|DOLBY[-\s]?ATMOS|ATMOS|DOLBY\s*CINEMA|IMAXLASER|IMAX\s*LASER|IMAX|MX4D|TCX|4DX|3D|BABY CLUB THEATER)\b/gi, "")
+    .replace(/\b([A-Za-z]{2,})(\d+)\b/g, "$1 $2")
+    .replace(/[^A-Za-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase();
 }

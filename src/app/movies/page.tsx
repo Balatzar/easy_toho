@@ -5,9 +5,9 @@ import {
   TOKYO_CINEMAS,
   getCinemaBySlug,
 } from "@/lib/cinemas";
-import { getEnglishWatchableMovies } from "@/lib/toho-aggregate";
+import { getEnglishWatchableMovies } from "@/lib/schedule-aggregate";
 import { imaxHref, moviesHref, movieHref, plannerHref } from "@/lib/routes";
-import { getPlanningDays, normalizeSelectedDate } from "@/lib/toho";
+import { getPlanningDays, normalizeSelectedDate } from "@/lib/schedules";
 import {
   DateTabs,
   MoviePoster,
@@ -18,7 +18,7 @@ import { SectionNav } from "../section-nav";
 
 export const metadata: Metadata = {
   title: "Movies | Easy Toho",
-  description: "English-watchable TOHO Cinemas movies across Tokyo.",
+  description: "English-watchable cinema movies across Tokyo.",
 };
 
 type SearchParams = Promise<{
@@ -32,7 +32,7 @@ export default async function MoviesPage({
 }) {
   const params = await searchParams;
   const defaultCinema = getCinemaBySlug(DEFAULT_CINEMA_SLUG);
-  const days = await getPlanningDays(defaultCinema.scheduleCode);
+  const days = await getPlanningDays(defaultCinema);
   const selectedDate = normalizeSelectedDate(firstParam(params.date), days);
   const selectedDay = days.find((day) => day.date === selectedDate);
 
@@ -101,7 +101,7 @@ async function MovieIndexSection({
             No English-watchable movies
           </h2>
           <p className="mt-2 text-sm text-stone-600">
-            TOHO did not return English-watchable screenings for this day.
+            No cinema schedule returned English-watchable screenings for this day.
           </p>
         </div>
       </div>

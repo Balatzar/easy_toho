@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { DEFAULT_CINEMA_SLUG, getCinemaBySlug } from "@/lib/cinemas";
-import { getMovieProjectionList } from "@/lib/toho-aggregate";
+import { getMovieProjectionList } from "@/lib/schedule-aggregate";
 import { imaxHref, movieHref, moviesHref, plannerHref } from "@/lib/routes";
 import {
   type PlanningDay,
   type Showtime,
   getPlanningDays,
   normalizeSelectedDate,
-} from "@/lib/toho";
+} from "@/lib/schedules";
 import {
   DateTabs,
   LanguageBadge,
@@ -21,11 +21,11 @@ import { SectionNav } from "../../section-nav";
 
 export const metadata: Metadata = {
   title: "Movie Projections | Easy Toho",
-  description: "TOHO Cinemas projections for one movie across Tokyo.",
+  description: "Cinema projections for one movie across Tokyo.",
 };
 
 type MovieParams = Promise<{
-  movieCode: string;
+  movieId: string;
 }>;
 
 type SearchParams = Promise<{
@@ -39,9 +39,9 @@ export default async function MoviePage({
   params: MovieParams;
   searchParams: SearchParams;
 }) {
-  const [{ movieCode }, query] = await Promise.all([params, searchParams]);
+  const [{ movieId }, query] = await Promise.all([params, searchParams]);
   const defaultCinema = getCinemaBySlug(DEFAULT_CINEMA_SLUG);
-  const days = await getPlanningDays(defaultCinema.scheduleCode);
+  const days = await getPlanningDays(defaultCinema);
   const selectedDate = normalizeSelectedDate(firstParam(query.date), days);
   const selectedDay = days.find((day) => day.date === selectedDate);
 
@@ -68,11 +68,11 @@ export default async function MoviePage({
         <DateTabs
           days={days}
           selectedDate={selectedDate}
-          hrefForDate={(date) => movieHref(movieCode, date)}
+          hrefForDate={(date) => movieHref(movieId, date)}
         />
 
         <Suspense
-          key={`${movieCode}-${selectedDate}`}
+          key={`${movieId}-${selectedDate}`}
           fallback={
             <ProjectionLoadingState
               selectedDay={selectedDay}
@@ -81,7 +81,7 @@ export default async function MoviePage({
           }
         >
           <MovieProjectionSection
-            movieCode={movieCode}
+            movieId={movieId}
             selectedDay={selectedDay}
             selectedDate={selectedDate}
           />
@@ -92,15 +92,15 @@ export default async function MoviePage({
 }
 
 async function MovieProjectionSection({
-  movieCode,
+  movieId,
   selectedDay,
   selectedDate,
 }: {
-  movieCode: string;
+  movieId: string;
   selectedDay: PlanningDay | undefined;
   selectedDate: string;
 }) {
-  const result = await getMovieProjectionList(movieCode, selectedDate);
+  const result = await getMovieProjectionList(movieId, selectedDate);
 
   if (!result.movie) {
     return (
@@ -111,7 +111,7 @@ async function MovieProjectionSection({
             No projections found
           </h2>
           <p className="mt-2 text-sm text-stone-600">
-            TOHO did not return this movie for the selected day.
+            No cinema schedule returned this movie for the selected day.
           </p>
         </div>
       </section>
@@ -205,8 +205,8 @@ function ShowtimeGroup({
               {showtime.eventLabel ? (
                 <MetaBadge>{showtime.eventLabel}</MetaBadge>
               ) : null}
-              <SeatStatus status={showtime.seatStatus}>
-                {showtime.seatStatusLabel}
+              <SeatStatus status={showtime.availability}>
+                {showtime.availabilityLabel}
               </SeatStatus>
             </div>
           </div>

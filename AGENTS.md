@@ -17,3 +17,7 @@ The default mattpocock/skills triage labels are used unchanged. See `docs/agents
 ### Domain docs
 
 This is a single-context repo. See `docs/agents/domain.md`.
+
+### Source adapters
+
+When adding a cinema schedule source or cinema from an existing source, see `docs/agents/source-adapters.md`.

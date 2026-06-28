@@ -10,11 +10,12 @@ import {
   type MovieCard,
   type PlanningDay,
   type Showtime,
+  type ShowtimeAvailability,
   firstSelectableDate,
   getPlanningDays,
   getSchedule,
   normalizeSelectedDate,
-} from "@/lib/toho";
+} from "@/lib/schedules";
 import { imaxHref, moviesHref, movieHref } from "@/lib/routes";
 import { PendingLink } from "./pending-link";
 import { SectionNav } from "./section-nav";
@@ -32,7 +33,7 @@ export default async function Home({
   const params = await searchParams;
   const cinemaSlug = firstParam(params.cinema) ?? DEFAULT_CINEMA_SLUG;
   const selectedCinema = getCinemaBySlug(cinemaSlug);
-  const days = await getPlanningDays(selectedCinema.scheduleCode);
+  const days = await getPlanningDays(selectedCinema);
   const selectedDate = normalizeSelectedDate(firstParam(params.date), days);
   const selectedDay = days.find((day) => day.date === selectedDate);
   const scheduleKey = `${selectedCinema.slug}-${selectedDate}`;
@@ -46,7 +47,7 @@ export default async function Home({
               Easy Toho
             </p>
             <h1 className="mt-1 text-2xl font-semibold tracking-normal text-stone-950 sm:text-3xl">
-              Tokyo TOHO showtimes
+              Tokyo cinema showtimes
             </h1>
           </div>
           <SectionNav
@@ -88,7 +89,7 @@ export default async function Home({
                       ].join(" ")}
                     >
                       <span className="block text-sm font-semibold">
-                        {cinema.name.replace("TOHO Cinemas ", "")}
+                        {cinema.name}
                       </span>
                       <span className="mt-1 flex flex-wrap items-center gap-1.5">
                         <span className="text-xs text-stone-500">
@@ -340,7 +341,7 @@ function MovieList({
           No published showtimes
         </h2>
         <p className="mt-2 text-sm text-stone-600">
-          TOHO did not return movies for this Cinema and day.
+          This cinema did not return movies for the selected day.
         </p>
       </div>
     );
@@ -375,7 +376,9 @@ function MovieCardView({
   const otherShowtimes = card.showtimes.filter(
     (showtime) => showtime.language !== "english",
   );
-  const sourceLabel = card.sourceLabels.sort((a, b) => a.length - b.length)[0];
+  const sourceLabels = [...card.sourceLabels].sort((a, b) => a.length - b.length);
+  const sourceLabelText = sourceLabels.join(" / ");
+  const sourceLabelPrefix = sourceLabels.length > 1 ? "Source labels" : "Source";
 
   return (
     <PendingLink
@@ -414,9 +417,9 @@ function MovieCardView({
               {card.runtimeMinutes ? `${card.runtimeMinutes} min · ` : ""}
               {cinemaName}
             </p>
-            {sourceLabel ? (
+            {sourceLabelText ? (
               <p className="mt-1 break-words text-xs text-stone-500">
-                Source: {sourceLabel}
+                {sourceLabelPrefix}: {sourceLabelText}
               </p>
             ) : null}
           </div>
@@ -469,8 +472,8 @@ function ShowtimeGroup({
               {showtime.eventLabel ? (
                 <MetaBadge>{showtime.eventLabel}</MetaBadge>
               ) : null}
-              <SeatStatus status={showtime.seatStatus}>
-                {showtime.seatStatusLabel}
+              <SeatStatus status={showtime.availability}>
+                {showtime.availabilityLabel}
               </SeatStatus>
             </div>
           </div>
@@ -515,18 +518,16 @@ function ImaxBadge({
   imax: Cinema["imax"];
   compact?: boolean;
 }) {
-  const label =
-    imax === "imaxLaser" ? "IMAX Laser" : imax === "imax" ? "IMAX" : "No IMAX";
-  const classes = imax
-    ? "border-sky-700 bg-sky-50 text-sky-950"
-    : "border-stone-200 bg-stone-50 text-stone-500";
+  if (!imax) return null;
+
+  const label = imax === "imaxLaser" ? "IMAX Laser" : "IMAX";
 
   return (
     <span
       className={[
         "rounded border font-semibold",
         compact ? "px-1.5 py-0.5 text-[11px]" : "px-2 py-0.5 text-xs",
-        classes,
+        "border-sky-700 bg-sky-50 text-sky-950",
       ].join(" ")}
     >
       {label}
@@ -546,15 +547,15 @@ function SeatStatus({
   status,
   children,
 }: {
-  status: string;
+  status: ShowtimeAvailability;
   children: ReactNode;
 }) {
   const classes =
-    status === "D"
+    status === "soldOut"
       ? "border-red-300 bg-red-100 text-red-950"
-      : status === "G"
+      : status === "notSelling"
         ? "border-stone-300 bg-stone-200 text-stone-800"
-        : status === "C"
+        : status === "limited"
           ? "border-amber-300 bg-amber-50 text-amber-950"
           : "border-stone-300 bg-white text-stone-700";
 

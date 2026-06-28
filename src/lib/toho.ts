@@ -1,5 +1,5 @@
 import { unstable_cache } from "next/cache";
-import type { Cinema } from "./cinemas";
+import type { TohoCinemaConfig } from "./cinemas";
 
 const TOHO_API_BASE = "https://api2.tohotheater.jp";
 const TOHO_MOVIE_BASE = "https://hlo.tohotheater.jp/net/movie/TNPI3060J01.do";
@@ -172,7 +172,7 @@ async function fetchPlanningDays(scheduleCode: string): Promise<PlanningDay[]> {
 }
 
 export async function getSchedule(
-  cinema: Cinema,
+  cinema: TohoCinemaConfig,
   selectedDate: string,
 ): Promise<ScheduleResult> {
   try {

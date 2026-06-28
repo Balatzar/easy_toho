@@ -1,16 +1,20 @@
 # Easy Toho
 
-Easy Toho helps English-speaking moviegoers understand TOHO Cinemas screening options in Tokyo without navigating the original Japanese website.
+Easy Toho helps English-speaking moviegoers understand cinema screening options in Tokyo without navigating Japanese cinema websites.
 
 ## Language
 
-**TOHO Cinemas Screening**:
-A scheduled public showing at a TOHO Cinemas location in Tokyo, regardless of the film's producer or distributor.
+**Cinema Screening**:
+A scheduled public showing at a Cinema in Tokyo, regardless of the film's producer, distributor, or Schedule Source.
 _Avoid_: TOHO movie
 
 **Cinema**:
-A specific TOHO Cinemas venue where screenings take place, such as TOHO Cinemas Shinjuku.
+A specific movie venue where screenings take place, such as TOHO Cinemas Shinjuku or Shinjuku Piccadilly.
 _Avoid_: Location, theater
+
+**Schedule Source**:
+An external cinema website that publishes schedule data for one or more Cinemas, such as TOHO Cinemas, SMT Cinemas, or T-Joy. SMT Cinemas is the Schedule Source for venues on `smt-cinema.com`, including Shinjuku Piccadilly. T-Joy is the Schedule Source for Shinjuku Wald 9, T-Joy SEIBU Oizumi, and T-Joy PRINCE Shinagawa.
+_Avoid_: Cinema, venue, source system
 
 **Shared Schedule Code Cinema**:
 A Cinema that shares a TOHO schedule code with another Cinema but remains a separate user-facing Cinema, such as TOHO Cinemas Hibiya and TOHO Cinemas Chanter.
@@ -25,7 +29,7 @@ A static Cinema-level reference label indicating whether the Cinema has an IMAX 
 _Avoid_: IMAX showtime availability, IMAX movie
 
 **IMAX Screening**:
-A TOHO Cinemas Screening whose Screening Format includes IMAX or IMAX Laser on the Selected Day.
+A Cinema Screening whose Screening Format includes IMAX or IMAX Laser on the Selected Day.
 _Avoid_: IMAX-capable cinema, IMAX movie
 
 **Screening Format**:
@@ -33,8 +37,12 @@ The presentation attributes that affect the viewing experience, such as IMAX, TC
 _Avoid_: Screen kind, screen type
 
 **Movie**:
-A film that has at least one TOHO Cinemas Screening.
+A film that has at least one Cinema Screening.
 _Avoid_: Title
+
+**Movie Identity**:
+The Easy Toho concept used to merge source-local movie records when different Schedule Sources appear to describe the same Movie. Screening variants such as subtitled, dubbed, premium-format, or special-event rows belong to one Movie Identity when the base film can be identified confidently.
+_Avoid_: Source movie code, canonical database ID
 
 **TOHO Movie Group**:
 The set of TOHO Cinemas schedule rows that share the same `mcode` and represent variants of the same Movie, such as subtitled, dubbed, or premium-format rows.
@@ -77,11 +85,11 @@ The result view for one Movie on a selected day at a selected Cinema, showing it
 _Avoid_: Movie result, title card
 
 **Published Showtime**:
-The scheduled start time for a TOHO Cinemas Screening. It does not imply ticket or seat availability.
+The scheduled start time for a Cinema Screening. It does not imply ticket or seat availability.
 _Avoid_: Available time, ticket availability
 
 **Schedule Snapshot**:
-The TOHO Cinemas schedule data for one Cinema and Selected Day, fresh enough for planning when captured within the last hour. It includes Published Showtimes and Seat Sales Status, so seat status may lag TOHO by up to one hour.
+The Schedule Source data for one Cinema and Selected Day, fresh enough for planning when captured within the last hour. It includes Published Showtimes and Showtime Availability, so availability may lag the source website by up to one hour.
 _Avoid_: Live schedule, real-time schedule
 
 **Movie Projection List**:
@@ -92,16 +100,16 @@ _Avoid_: Available projections, English-only projections
 A cross-Cinema schedule result that includes successfully fetched Cinema schedules while naming any Cinemas whose live TOHO data could not be loaded.
 _Avoid_: Failed search, unreliable result
 
-**Seat Sales Status**:
-TOHO Cinemas' per-showtime sales status code: A for plenty of seats, B for some seats left, C for few seats left, D for sold out, and G for not selling yet. It may change independently from the Published Showtime itself and is displayed as source status, not inferred availability.
-_Avoid_: Seat count, availability
+**Showtime Availability**:
+The sales state for a Published Showtime, such as available, limited, sold out, not selling, or unknown. Easy Toho can compare it through source-neutral categories, but the reader-facing label should preserve the Schedule Source's own availability wording or marker for that Cinema.
+_Avoid_: Seat count, TOHO seat status
 
 **Language Presentation**:
 The audio and subtitle information that determines whether a screening is watchable for an English-speaking moviegoer.
 _Avoid_: Language format, subtitle info
 
 **English-Watchable Screening**:
-A TOHO Cinemas Screening whose Language Presentation indicates original English audio with Japanese subtitles, or English subtitles.
+A Cinema Screening whose Language Presentation indicates original English audio with Japanese subtitles, or English subtitles.
 _Avoid_: English movie, foreign movie
 
 **English-Watchable Movie**:
@@ -113,5 +121,5 @@ A Movie that has at least one IMAX Screening on the Selected Day at any Tokyo Ci
 _Avoid_: IMAX movie, movie in an IMAX-capable Cinema
 
 **Japanese-Language Screening**:
-A TOHO Cinemas Screening whose Language Presentation does not indicate English-watchable subtitles or audio. It remains visible below English-Watchable Screenings.
+A Cinema Screening whose Language Presentation does not indicate English-watchable subtitles or audio. It remains visible below English-Watchable Screenings.
 _Avoid_: Unknown movie, unclear screening

@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
-import type { CinemaScheduleFailure } from "@/lib/toho-aggregate";
+import type { CinemaScheduleFailure } from "@/lib/schedule-aggregate";
 import {
   type LanguageRank,
   type PlanningDay,
+  type ShowtimeAvailability,
   firstSelectableDate,
-} from "@/lib/toho";
+} from "@/lib/schedules";
 import { PendingLink } from "../pending-link";
 
 export function DateTabs({
@@ -141,15 +142,15 @@ export function SeatStatus({
   status,
   children,
 }: {
-  status: string;
+  status: ShowtimeAvailability;
   children: ReactNode;
 }) {
   const classes =
-    status === "D"
+    status === "soldOut"
       ? "border-red-300 bg-red-100 text-red-950"
-      : status === "G"
+      : status === "notSelling"
         ? "border-stone-300 bg-stone-200 text-stone-800"
-        : status === "C"
+        : status === "limited"
           ? "border-amber-300 bg-amber-50 text-amber-950"
           : "border-stone-300 bg-white text-stone-700";
 

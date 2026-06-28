@@ -8,13 +8,13 @@ import {
 import {
   type ImaxAvailableMovie,
   getImaxAvailableMovies,
-} from "@/lib/toho-aggregate";
+} from "@/lib/schedule-aggregate";
 import { imaxHref, movieHref, moviesHref, plannerHref } from "@/lib/routes";
 import {
   type Showtime,
   getPlanningDays,
   normalizeSelectedDate,
-} from "@/lib/toho";
+} from "@/lib/schedules";
 import {
   DateTabs,
   LanguageBadge,
@@ -28,7 +28,7 @@ import { SectionNav } from "../section-nav";
 
 export const metadata: Metadata = {
   title: "IMAX | Easy Toho",
-  description: "IMAX TOHO Cinemas screenings across Tokyo.",
+  description: "IMAX cinema screenings across Tokyo.",
 };
 
 type SearchParams = Promise<{
@@ -43,7 +43,7 @@ export default async function ImaxPage({
   const params = await searchParams;
   const planningCinema =
     IMAX_CAPABLE_CINEMAS[0] ?? getCinemaBySlug(DEFAULT_CINEMA_SLUG);
-  const days = await getPlanningDays(planningCinema.scheduleCode);
+  const days = await getPlanningDays(planningCinema);
   const selectedDate = normalizeSelectedDate(firstParam(params.date), days);
   const selectedDay = days.find((day) => day.date === selectedDate);
 
@@ -112,7 +112,7 @@ async function ImaxMovieListSection({
             No IMAX movies
           </h2>
           <p className="mt-2 text-sm text-stone-600">
-            TOHO did not return IMAX screenings for this day.
+            No cinema schedule returned IMAX screenings for this day.
           </p>
         </div>
       </div>
@@ -238,8 +238,8 @@ function ShowtimeGroup({
               {showtime.eventLabel ? (
                 <MetaBadge>{showtime.eventLabel}</MetaBadge>
               ) : null}
-              <SeatStatus status={showtime.seatStatus}>
-                {showtime.seatStatusLabel}
+              <SeatStatus status={showtime.availability}>
+                {showtime.availabilityLabel}
               </SeatStatus>
             </div>
           </div>
