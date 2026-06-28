@@ -1,9 +1,11 @@
+import { unstable_cache } from "next/cache";
 import type { Cinema } from "./cinemas";
 
 const TOHO_API_BASE = "https://api2.tohotheater.jp";
 const TOHO_MOVIE_BASE = "https://hlo.tohotheater.jp/net/movie/TNPI3060J01.do";
 const TOHO_IMAGE_BASE = "https://www.tohotheater.jp/images_net/movie";
 const TOKYO_TIME_ZONE = "Asia/Tokyo";
+const TOHO_CACHE_SECONDS = 3_600;
 
 export type PlanningDay = {
   date: string;
@@ -52,6 +54,8 @@ export type ScheduleResult =
       error: string;
       fetchedAt: string;
     };
+
+type LoadedScheduleResult = Extract<ScheduleResult, { ok: true }>;
 
 type TohoCalendarResponse = {
   status: string;
@@ -122,6 +126,27 @@ type MovieGroup = {
 export async function getPlanningDays(
   scheduleCode: string,
 ): Promise<PlanningDay[]> {
+  try {
+    return await getCachedPlanningDays(scheduleCode);
+  } catch {
+    return fallbackPlanningDays();
+  }
+}
+
+const getCachedPlanningDays = unstable_cache(
+  async (scheduleCode: string): Promise<PlanningDay[]> => {
+    const days = await fetchPlanningDays(scheduleCode);
+    if (days.length === 0) {
+      throw new Error("TOHO returned no planning days.");
+    }
+
+    return days;
+  },
+  ["toho-planning-days-v1"],
+  { revalidate: TOHO_CACHE_SECONDS },
+);
+
+async function fetchPlanningDays(scheduleCode: string): Promise<PlanningDay[]> {
   const params = new URLSearchParams({
     __type__: "html",
     __useResultInfo__: "no",
@@ -133,34 +158,64 @@ export async function getPlanningDays(
     _dc: unixSeconds(),
   });
 
-  try {
-    const data = await fetchJson<TohoCalendarResponse>(
-      `${TOHO_API_BASE}/api/schedule/v1/schedule/${scheduleCode}/TNPI3050J03?${params}`,
-      6_000,
-    );
+  const data = await fetchJson<TohoCalendarResponse>(
+    `${TOHO_API_BASE}/api/schedule/v1/schedule/${scheduleCode}/TNPI3050J03?${params}`,
+    6_000,
+  );
 
-    const days =
-      data.data
-        ?.filter((day) => typeof day.date === "string")
-        .slice(0, 7)
-        .map((day) => toPlanningDay(day.date!, day.selectable === "1")) ?? [];
-
-    return days.length > 0 ? days : fallbackPlanningDays();
-  } catch {
-    return fallbackPlanningDays();
-  }
+  return (
+    data.data
+      ?.filter((day) => typeof day.date === "string")
+      .slice(0, 7)
+      .map((day) => toPlanningDay(day.date!, day.selectable === "1")) ?? []
+  );
 }
 
 export async function getSchedule(
   cinema: Cinema,
   selectedDate: string,
 ): Promise<ScheduleResult> {
+  try {
+    return await getCachedScheduleSnapshot(
+      cinema.scheduleCode,
+      cinema.theaterCode,
+      selectedDate,
+    );
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Could not fetch live TOHO showtimes right now.",
+      fetchedAt: new Date().toISOString(),
+    };
+  }
+}
+
+const getCachedScheduleSnapshot = unstable_cache(
+  async (
+    scheduleCode: string,
+    theaterCode: string,
+    selectedDate: string,
+  ): Promise<LoadedScheduleResult> => {
+    return fetchScheduleSnapshot(scheduleCode, theaterCode, selectedDate);
+  },
+  ["toho-schedule-snapshot-v1"],
+  { revalidate: TOHO_CACHE_SECONDS },
+);
+
+async function fetchScheduleSnapshot(
+  scheduleCode: string,
+  theaterCode: string,
+  selectedDate: string,
+): Promise<LoadedScheduleResult> {
   const fetchedAt = new Date().toISOString();
   const showDay = dateToToho(selectedDate);
   const params = new URLSearchParams({
     __type__: "html",
     __useResultInfo__: "no",
-    vg_cd: cinema.scheduleCode,
+    vg_cd: scheduleCode,
     show_day: showDay,
     term: "99",
     isMember: "",
@@ -168,48 +223,27 @@ export async function getSchedule(
     _dc: unixSeconds(),
   });
 
-  try {
-    const data = await fetchJson<TohoScheduleResponse>(
-      `${TOHO_API_BASE}/api/schedule/v1/schedule/${cinema.scheduleCode}/TNPI3050J02?${params}`,
-      8_000,
-    );
+  const data = await fetchJson<TohoScheduleResponse>(
+    `${TOHO_API_BASE}/api/schedule/v1/schedule/${scheduleCode}/TNPI3050J02?${params}`,
+    8_000,
+  );
 
-    if (data.status !== "0") {
-      return {
-        ok: false,
-        error: "TOHO returned an unavailable schedule response.",
-        fetchedAt,
-      };
-    }
-
-    const theaters = data.data?.[0]?.list ?? [];
-    const theater =
-      theaters.find((item) => item.code === cinema.theaterCode) ?? theaters[0];
-
-    if (!theater?.list) {
-      return {
-        ok: false,
-        error: "No published showtimes were returned for this Cinema and day.",
-        fetchedAt,
-      };
-    }
-
-    const groups = normalizeMovieGroups(theater.list);
-    const artworkByCode = await getArtworkByMovieCode(groups);
-    const cards = groups.map((group) => toMovieCard(group, artworkByCode));
-
-    return {
-      ok: true,
-      cards: sortMovieCards(cards),
-      fetchedAt,
-    };
-  } catch {
-    return {
-      ok: false,
-      error: "Could not fetch live TOHO showtimes right now.",
-      fetchedAt,
-    };
+  if (data.status !== "0") {
+    throw new Error("TOHO returned an unavailable schedule response.");
   }
+
+  const theaters = data.data?.[0]?.list ?? [];
+  const theater =
+    theaters.find((item) => item.code === theaterCode) ?? theaters[0];
+  const groups = normalizeMovieGroups(theater?.list ?? []);
+  const artworkByCode = await getArtworkByMovieCode(groups);
+  const cards = groups.map((group) => toMovieCard(group, artworkByCode));
+
+  return {
+    ok: true,
+    cards: sortMovieCards(cards),
+    fetchedAt,
+  };
 }
 
 export function firstSelectableDate(days: PlanningDay[]): string {

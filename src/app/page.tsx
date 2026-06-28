@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import Link from "next/link";
+import { Suspense, type ReactNode } from "react";
 import {
   type Cinema,
   DEFAULT_CINEMA_SLUG,
@@ -15,6 +16,7 @@ import {
   getSchedule,
   normalizeSelectedDate,
 } from "@/lib/toho";
+import { moviesHref } from "@/lib/routes";
 
 type SearchParams = Promise<{
   cinema?: string | string[];
@@ -31,8 +33,8 @@ export default async function Home({
   const selectedCinema = getCinemaBySlug(cinemaSlug);
   const days = await getPlanningDays(selectedCinema.scheduleCode);
   const selectedDate = normalizeSelectedDate(firstParam(params.date), days);
-  const schedule = await getSchedule(selectedCinema, selectedDate);
   const selectedDay = days.find((day) => day.date === selectedDate);
+  const scheduleKey = `${selectedCinema.slug}-${selectedDate}`;
 
   return (
     <main className="min-h-screen bg-[#f6f6f3] text-stone-950">
@@ -47,12 +49,12 @@ export default async function Home({
             </h1>
           </div>
           <div className="flex flex-wrap gap-2 text-xs font-medium text-stone-600">
-            <span className="rounded border border-stone-300 bg-white px-2.5 py-1">
-              Tokyo time
-            </span>
-            <span className="rounded border border-stone-300 bg-white px-2.5 py-1">
-              TOHO live data
-            </span>
+            <Link
+              href={moviesHref(selectedDate)}
+              className="rounded border border-red-700 bg-red-50 px-2.5 py-1 font-semibold text-red-950 hover:bg-red-100"
+            >
+              Movies
+            </Link>
           </div>
         </header>
 
@@ -76,7 +78,7 @@ export default async function Home({
                   const selected = cinema.slug === selectedCinema.slug;
 
                   return (
-                    <a
+                    <Link
                       key={cinema.slug}
                       href={plannerHref(cinema.slug, selectedDate)}
                       className={[
@@ -95,7 +97,7 @@ export default async function Home({
                         </span>
                         <ImaxBadge imax={cinema.imax} compact />
                       </span>
-                    </a>
+                    </Link>
                   );
                 })}
               </nav>
@@ -103,36 +105,22 @@ export default async function Home({
           </aside>
 
           <section className="min-w-0">
-            <div className="mb-4 flex flex-col gap-2 border-b border-stone-200 pb-4 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-semibold text-stone-950">
-                    {selectedCinema.name}
-                  </p>
-                  <ImaxBadge imax={selectedCinema.imax} />
-                </div>
-                <p className="text-sm text-stone-600">
-                  {selectedDay
-                    ? `${selectedDay.weekday}, ${selectedDay.label}`
-                    : selectedDate}
-                </p>
-              </div>
-              {schedule.ok ? (
-                <p className="text-sm text-stone-600">
-                  {schedule.cards.length} movies
-                </p>
-              ) : null}
-            </div>
-
-            {schedule.ok ? (
-              <MovieList cards={schedule.cards} cinemaName={selectedCinema.name} />
-            ) : (
-              <ErrorState
-                error={schedule.error}
-                cinemaSlug={selectedCinema.slug}
+            <Suspense
+              key={scheduleKey}
+              fallback={
+                <ScheduleLoadingState
+                  selectedCinema={selectedCinema}
+                  selectedDay={selectedDay}
+                  selectedDate={selectedDate}
+                />
+              }
+            >
+              <ScheduleSection
+                selectedCinema={selectedCinema}
+                selectedDay={selectedDay}
                 selectedDate={selectedDate}
               />
-            )}
+            </Suspense>
           </section>
         </div>
       </div>
@@ -177,7 +165,7 @@ function DateTabs({
         }
 
         return (
-          <a
+          <Link
             key={day.date}
             href={href}
             className={[
@@ -191,10 +179,145 @@ function DateTabs({
             <span className={active ? "text-xs text-stone-200" : "text-xs"}>
               {day.label}
             </span>
-          </a>
+          </Link>
         );
       })}
     </nav>
+  );
+}
+
+async function ScheduleSection({
+  selectedCinema,
+  selectedDay,
+  selectedDate,
+}: {
+  selectedCinema: Cinema;
+  selectedDay: PlanningDay | undefined;
+  selectedDate: string;
+}) {
+  const schedule = await getSchedule(selectedCinema, selectedDate);
+
+  return (
+    <>
+      <ScheduleHeader
+        selectedCinema={selectedCinema}
+        selectedDay={selectedDay}
+        selectedDate={selectedDate}
+        trailing={
+          schedule.ok ? (
+            <span>{schedule.cards.length} movies</span>
+          ) : undefined
+        }
+      />
+
+      {schedule.ok ? (
+        <MovieList cards={schedule.cards} cinemaName={selectedCinema.name} />
+      ) : (
+        <ErrorState
+          error={schedule.error}
+          cinemaSlug={selectedCinema.slug}
+          selectedDate={selectedDate}
+        />
+      )}
+    </>
+  );
+}
+
+function ScheduleHeader({
+  selectedCinema,
+  selectedDay,
+  selectedDate,
+  trailing,
+}: {
+  selectedCinema: Cinema;
+  selectedDay: PlanningDay | undefined;
+  selectedDate: string;
+  trailing?: ReactNode;
+}) {
+  return (
+    <div className="mb-4 flex flex-col gap-2 border-b border-stone-200 pb-4 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm font-semibold text-stone-950">
+            {selectedCinema.name}
+          </p>
+          <ImaxBadge imax={selectedCinema.imax} />
+        </div>
+        <p className="text-sm text-stone-600">
+          {selectedDay
+            ? `${selectedDay.weekday}, ${selectedDay.label}`
+            : selectedDate}
+        </p>
+      </div>
+      {trailing ? <p className="text-sm text-stone-600">{trailing}</p> : null}
+    </div>
+  );
+}
+
+function ScheduleLoadingState({
+  selectedCinema,
+  selectedDay,
+  selectedDate,
+}: {
+  selectedCinema: Cinema;
+  selectedDay: PlanningDay | undefined;
+  selectedDate: string;
+}) {
+  return (
+    <div aria-busy="true" aria-live="polite">
+      <ScheduleHeader
+        selectedCinema={selectedCinema}
+        selectedDay={selectedDay}
+        selectedDate={selectedDate}
+        trailing={
+          <span className="inline-flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-red-700" />
+            Loading showtimes
+          </span>
+        }
+      />
+      <div className="grid gap-3">
+        {Array.from({ length: 5 }, (_, index) => (
+          <SkeletonMovieCard key={index} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SkeletonMovieCard() {
+  return (
+    <article className="grid animate-pulse gap-4 rounded-lg border border-stone-200 bg-white p-3 shadow-sm sm:grid-cols-[112px_minmax(0,1fr)]">
+      <div className="aspect-[2/3] min-h-40 rounded-md bg-stone-200" />
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="h-6 w-44 rounded bg-stone-200" />
+          <div className="h-5 w-28 rounded bg-stone-100" />
+        </div>
+        <div className="mt-2 h-4 w-56 max-w-full rounded bg-stone-100" />
+        <div className="mt-2 h-3 w-72 max-w-full rounded bg-stone-100" />
+        <div className="mt-5 h-3 w-36 rounded bg-stone-200" />
+        <div className="mt-2 grid gap-2">
+          {Array.from({ length: 3 }, (_, index) => (
+            <div
+              key={index}
+              className="flex flex-col gap-2 rounded-md border border-stone-200 bg-stone-50 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div className="flex items-center gap-2">
+                <div className="h-5 w-12 rounded bg-stone-200" />
+                <div className="h-4 w-20 rounded bg-stone-100" />
+                <div className="h-4 w-16 rounded bg-stone-100" />
+              </div>
+              <div className="flex gap-1.5">
+                <div className="h-5 w-16 rounded bg-stone-100" />
+                <div className="h-5 w-20 rounded bg-stone-100" />
+                <div className="h-5 w-16 rounded bg-stone-100" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </article>
   );
 }
 
@@ -442,12 +565,12 @@ function ErrorState({
         Could not load showtimes
       </h2>
       <p className="mt-2 text-sm text-red-900">{error}</p>
-      <a
+      <Link
         href={plannerHref(cinemaSlug, selectedDate)}
         className="mt-4 inline-flex rounded-md border border-red-700 bg-white px-3 py-2 text-sm font-semibold text-red-900 hover:bg-red-100"
       >
         Retry
-      </a>
+      </Link>
     </div>
   );
 }

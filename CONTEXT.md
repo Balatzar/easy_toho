@@ -36,6 +36,10 @@ _Avoid_: Title
 The set of TOHO Cinemas schedule rows that share the same `mcode` and represent variants of the same Movie, such as subtitled, dubbed, or premium-format rows.
 _Avoid_: Title group, duplicate movie
 
+**TOHO Movie Code**:
+The TOHO Cinemas source identifier that groups schedule variants of the same Movie across Cinema schedules.
+_Avoid_: Movie slug, canonical movie ID
+
 **Source Movie Label**:
 The movie name as it appears in TOHO Cinemas screening data, usually in Japanese.
 _Avoid_: Japanese title
@@ -72,8 +76,20 @@ _Avoid_: Movie result, title card
 The scheduled start time for a TOHO Cinemas Screening. It does not imply ticket or seat availability.
 _Avoid_: Available time, ticket availability
 
+**Schedule Snapshot**:
+The TOHO Cinemas schedule data for one Cinema and Selected Day, fresh enough for planning when captured within the last hour. It includes Published Showtimes and Seat Sales Status, so seat status may lag TOHO by up to one hour.
+_Avoid_: Live schedule, real-time schedule
+
+**Movie Projection List**:
+The complete set of Published Showtimes for one Movie on a Selected Day across Tokyo Cinemas, including both English-Watchable Screenings and Japanese-Language Screenings.
+_Avoid_: Available projections, English-only projections
+
+**Partial Schedule Result**:
+A cross-Cinema schedule result that includes successfully fetched Cinema schedules while naming any Cinemas whose live TOHO data could not be loaded.
+_Avoid_: Failed search, unreliable result
+
 **Seat Sales Status**:
-TOHO Cinemas' per-showtime sales status code: A for plenty of seats, B for some seats left, C for few seats left, D for sold out, and G for not selling yet. It is displayed as source status, not inferred availability.
+TOHO Cinemas' per-showtime sales status code: A for plenty of seats, B for some seats left, C for few seats left, D for sold out, and G for not selling yet. It may change independently from the Published Showtime itself and is displayed as source status, not inferred availability.
 _Avoid_: Seat count, availability
 
 **Language Presentation**:
@@ -83,6 +99,10 @@ _Avoid_: Language format, subtitle info
 **English-Watchable Screening**:
 A TOHO Cinemas Screening whose Language Presentation indicates original English audio with Japanese subtitles, or English subtitles.
 _Avoid_: English movie, foreign movie
+
+**English-Watchable Movie**:
+A Movie that has at least one English-Watchable Screening on the Selected Day at any Tokyo Cinema.
+_Avoid_: Available in English movie, English title
 
 **Japanese-Language Screening**:
 A TOHO Cinemas Screening whose Language Presentation does not indicate English-watchable subtitles or audio. It remains visible below English-Watchable Screenings.
