@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
 import {
   type Cinema,
@@ -16,7 +15,9 @@ import {
   getSchedule,
   normalizeSelectedDate,
 } from "@/lib/toho";
-import { moviesHref } from "@/lib/routes";
+import { imaxHref, moviesHref, movieHref } from "@/lib/routes";
+import { PendingLink } from "./pending-link";
+import { SectionNav } from "./section-nav";
 
 type SearchParams = Promise<{
   cinema?: string | string[];
@@ -48,14 +49,12 @@ export default async function Home({
               Tokyo TOHO showtimes
             </h1>
           </div>
-          <div className="flex flex-wrap gap-2 text-xs font-medium text-stone-600">
-            <Link
-              href={moviesHref(selectedDate)}
-              className="rounded border border-red-700 bg-red-50 px-2.5 py-1 font-semibold text-red-950 hover:bg-red-100"
-            >
-              Movies
-            </Link>
-          </div>
+          <SectionNav
+            active="cinemas"
+            cinemasHref={plannerHref(selectedCinema.slug, selectedDate)}
+            moviesHref={moviesHref(selectedDate)}
+            imaxHref={imaxHref(selectedDate)}
+          />
         </header>
 
         <DateTabs
@@ -78,7 +77,7 @@ export default async function Home({
                   const selected = cinema.slug === selectedCinema.slug;
 
                   return (
-                    <Link
+                    <PendingLink
                       key={cinema.slug}
                       href={plannerHref(cinema.slug, selectedDate)}
                       className={[
@@ -97,7 +96,7 @@ export default async function Home({
                         </span>
                         <ImaxBadge imax={cinema.imax} compact />
                       </span>
-                    </Link>
+                    </PendingLink>
                   );
                 })}
               </nav>
@@ -165,7 +164,7 @@ function DateTabs({
         }
 
         return (
-          <Link
+          <PendingLink
             key={day.date}
             href={href}
             className={[
@@ -179,7 +178,7 @@ function DateTabs({
             <span className={active ? "text-xs text-stone-200" : "text-xs"}>
               {day.label}
             </span>
-          </Link>
+          </PendingLink>
         );
       })}
     </nav>
@@ -211,7 +210,11 @@ async function ScheduleSection({
       />
 
       {schedule.ok ? (
-        <MovieList cards={schedule.cards} cinemaName={selectedCinema.name} />
+        <MovieList
+          cards={schedule.cards}
+          cinemaName={selectedCinema.name}
+          selectedDate={selectedDate}
+        />
       ) : (
         <ErrorState
           error={schedule.error}
@@ -324,9 +327,11 @@ function SkeletonMovieCard() {
 function MovieList({
   cards,
   cinemaName,
+  selectedDate,
 }: {
   cards: MovieCard[];
   cinemaName: string;
+  selectedDate: string;
 }) {
   if (cards.length === 0) {
     return (
@@ -344,7 +349,12 @@ function MovieList({
   return (
     <div className="grid gap-3">
       {cards.map((card) => (
-        <MovieCardView key={card.id} card={card} cinemaName={cinemaName} />
+        <MovieCardView
+          key={card.id}
+          card={card}
+          cinemaName={cinemaName}
+          selectedDate={selectedDate}
+        />
       ))}
     </div>
   );
@@ -353,9 +363,11 @@ function MovieList({
 function MovieCardView({
   card,
   cinemaName,
+  selectedDate,
 }: {
   card: MovieCard;
   cinemaName: string;
+  selectedDate: string;
 }) {
   const englishShowtimes = card.showtimes.filter(
     (showtime) => showtime.language === "english",
@@ -366,7 +378,10 @@ function MovieCardView({
   const sourceLabel = card.sourceLabels.sort((a, b) => a.length - b.length)[0];
 
   return (
-    <article className="grid gap-4 rounded-lg border border-stone-200 bg-white p-3 shadow-sm sm:grid-cols-[112px_minmax(0,1fr)]">
+    <PendingLink
+      href={movieHref(card.id, selectedDate)}
+      className="grid gap-4 rounded-lg border border-stone-200 bg-white p-3 shadow-sm transition-colors hover:border-stone-950 sm:grid-cols-[112px_minmax(0,1fr)]"
+    >
       <div
         className="flex aspect-[2/3] min-h-40 items-end overflow-hidden rounded-md bg-stone-200 bg-cover bg-center"
         style={
@@ -417,7 +432,7 @@ function MovieCardView({
           <ShowtimeGroup label="Japanese" showtimes={otherShowtimes} />
         ) : null}
       </div>
-    </article>
+    </PendingLink>
   );
 }
 
@@ -565,12 +580,12 @@ function ErrorState({
         Could not load showtimes
       </h2>
       <p className="mt-2 text-sm text-red-900">{error}</p>
-      <Link
+      <PendingLink
         href={plannerHref(cinemaSlug, selectedDate)}
         className="mt-4 inline-flex rounded-md border border-red-700 bg-white px-3 py-2 text-sm font-semibold text-red-900 hover:bg-red-100"
       >
         Retry
-      </Link>
+      </PendingLink>
     </div>
   );
 }

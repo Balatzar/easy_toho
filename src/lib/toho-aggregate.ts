@@ -1,9 +1,10 @@
-import { TOKYO_CINEMAS, type Cinema } from "./cinemas";
+import { IMAX_CAPABLE_CINEMAS, TOKYO_CINEMAS, type Cinema } from "./cinemas";
 import {
   type MovieCard,
   type ScheduleResult,
   type Showtime,
   getSchedule,
+  isImaxScreening,
 } from "./toho";
 
 export type CinemaScheduleFailure = {
@@ -35,6 +36,27 @@ export type MovieProjectionResult = {
   failedCinemas: CinemaScheduleFailure[];
 };
 
+export type ImaxAvailableMovieCinema = {
+  cinema: Cinema;
+  card: MovieCard;
+  englishShowtimes: Showtime[];
+  otherShowtimes: Showtime[];
+};
+
+export type ImaxAvailableMovie = {
+  id: string;
+  title: string;
+  artworkUrl: string | null;
+  runtimeMinutes: number | null;
+  rating: string | null;
+  cinemas: ImaxAvailableMovieCinema[];
+};
+
+export type ImaxAvailableMoviesResult = {
+  movies: ImaxAvailableMovie[];
+  failedCinemas: CinemaScheduleFailure[];
+};
+
 type LoadedCinemaSchedule = {
   cinema: Cinema;
   cards: MovieCard[];
@@ -47,6 +69,11 @@ type TokyoScheduleResult = {
 
 type MovieAccumulator = EnglishWatchableMovie & {
   earliestEnglishMinutes: number;
+};
+
+type ImaxMovieAccumulator = Omit<ImaxAvailableMovie, "cinemas"> & {
+  cinemas: ImaxAvailableMovieCinema[];
+  earliestImaxMinutes: number;
 };
 
 export async function getEnglishWatchableMovies(
@@ -101,6 +128,79 @@ export async function getEnglishWatchableMovies(
   };
 }
 
+export async function getImaxAvailableMovies(
+  selectedDate: string,
+): Promise<ImaxAvailableMoviesResult> {
+  const schedules = await getTokyoCinemaSchedules(
+    selectedDate,
+    IMAX_CAPABLE_CINEMAS,
+  );
+  const movies = new Map<string, ImaxMovieAccumulator>();
+
+  for (const schedule of schedules.loaded) {
+    for (const card of schedule.cards) {
+      const imaxShowtimes = card.showtimes.filter(isImaxScreening);
+      if (imaxShowtimes.length === 0) continue;
+
+      const englishShowtimes = imaxShowtimes.filter(
+        (showtime) => showtime.language === "english",
+      );
+      const otherShowtimes = imaxShowtimes.filter(
+        (showtime) => showtime.language !== "english",
+      );
+      const projectionCinema = {
+        cinema: schedule.cinema,
+        card,
+        englishShowtimes,
+        otherShowtimes,
+      };
+      const earliestImaxMinutes = earliestMinutes(imaxShowtimes);
+      const existing = movies.get(card.id);
+
+      if (!existing) {
+        movies.set(card.id, {
+          id: card.id,
+          title: card.title,
+          artworkUrl: card.artworkUrl,
+          runtimeMinutes: card.runtimeMinutes,
+          rating: card.rating,
+          cinemas: [projectionCinema],
+          earliestImaxMinutes,
+        });
+        continue;
+      }
+
+      existing.earliestImaxMinutes = Math.min(
+        existing.earliestImaxMinutes,
+        earliestImaxMinutes,
+      );
+      existing.title = shortestLabel(existing.title, card.title);
+      existing.artworkUrl ??= card.artworkUrl;
+      existing.runtimeMinutes ??= card.runtimeMinutes;
+      existing.rating ??= card.rating;
+      existing.cinemas.push(projectionCinema);
+    }
+  }
+
+  return {
+    movies: Array.from(movies.values())
+      .sort((a, b) => {
+        const time = a.earliestImaxMinutes - b.earliestImaxMinutes;
+        if (time !== 0) return time;
+        return a.title.localeCompare(b.title);
+      })
+      .map((movie) => ({
+        id: movie.id,
+        title: movie.title,
+        artworkUrl: movie.artworkUrl,
+        runtimeMinutes: movie.runtimeMinutes,
+        rating: movie.rating,
+        cinemas: movie.cinemas.sort(compareImaxMovieCinemas),
+      })),
+    failedCinemas: schedules.failedCinemas,
+  };
+}
+
 export async function getMovieProjectionList(
   movieCode: string,
   selectedDate: string,
@@ -148,9 +248,10 @@ export async function getMovieProjectionList(
 
 async function getTokyoCinemaSchedules(
   selectedDate: string,
+  cinemas: Cinema[] = TOKYO_CINEMAS,
 ): Promise<TokyoScheduleResult> {
   const results = await Promise.all(
-    TOKYO_CINEMAS.map(async (cinema) => {
+    cinemas.map(async (cinema) => {
       const schedule = await getSchedule(cinema, selectedDate);
       return { cinema, schedule };
     }),
@@ -197,6 +298,17 @@ function compareProjectionCinemas(
   const bTime = earliestMinutes(
     bHasEnglish ? b.englishShowtimes : b.card.showtimes,
   );
+
+  if (aTime !== bTime) return aTime - bTime;
+  return a.cinema.name.localeCompare(b.cinema.name);
+}
+
+function compareImaxMovieCinemas(
+  a: ImaxAvailableMovieCinema,
+  b: ImaxAvailableMovieCinema,
+): number {
+  const aTime = earliestMinutes([...a.englishShowtimes, ...a.otherShowtimes]);
+  const bTime = earliestMinutes([...b.englishShowtimes, ...b.otherShowtimes]);
 
   if (aTime !== bTime) return aTime - bTime;
   return a.cinema.name.localeCompare(b.cinema.name);

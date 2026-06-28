@@ -21,3 +21,43 @@ body {
 a {
   text-decoration: none;
 }
+
+.pending-link {
+  position: relative;
+}
+
+.pending-link[data-pending="true"] {
+  border-color: #a8a29e !important;
+  background-color: #e7e5e4 !important;
+  color: #44403c !important;
+}
+
+.pending-link__content {
+  display: contents;
+}
+
+.pending-link[data-pending="true"] .pending-link__content {
+  visibility: hidden;
+}
+
+.pending-link__loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: inherit;
+  border-radius: inherit;
+  color: #44403c;
+  font: inherit;
+  font-weight: 700;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.pending-link[data-pending="true"] .pending-link__loading {
+  opacity: 1;
+  visibility: visible;
+}

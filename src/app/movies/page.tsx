@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Suspense } from "react";
 import {
   DEFAULT_CINEMA_SLUG,
@@ -7,13 +6,15 @@ import {
   getCinemaBySlug,
 } from "@/lib/cinemas";
 import { getEnglishWatchableMovies } from "@/lib/toho-aggregate";
-import { moviesHref, movieHref, plannerHref } from "@/lib/routes";
+import { imaxHref, moviesHref, movieHref, plannerHref } from "@/lib/routes";
 import { getPlanningDays, normalizeSelectedDate } from "@/lib/toho";
 import {
   DateTabs,
   MoviePoster,
   PartialScheduleWarning,
 } from "./components";
+import { PendingLink } from "../pending-link";
+import { SectionNav } from "../section-nav";
 
 export const metadata: Metadata = {
   title: "Movies | Easy Toho",
@@ -47,17 +48,12 @@ export default async function MoviesPage({
               English-watchable movies
             </h1>
           </div>
-          <nav className="flex flex-wrap gap-2 text-xs font-semibold">
-            <Link
-              href={plannerHref(DEFAULT_CINEMA_SLUG, selectedDate)}
-              className="rounded border border-stone-300 bg-white px-2.5 py-1 text-stone-700 hover:border-stone-950"
-            >
-              Cinemas
-            </Link>
-            <span className="rounded border border-red-700 bg-red-50 px-2.5 py-1 text-red-950">
-              Movies
-            </span>
-          </nav>
+          <SectionNav
+            active="movies"
+            cinemasHref={plannerHref(DEFAULT_CINEMA_SLUG, selectedDate)}
+            moviesHref={moviesHref(selectedDate)}
+            imaxHref={imaxHref(selectedDate)}
+          />
         </header>
 
         <DateTabs
@@ -117,7 +113,7 @@ async function MovieIndexSection({
       <PartialScheduleWarning failedCinemas={result.failedCinemas} />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
         {result.movies.map((movie) => (
-          <Link
+          <PendingLink
             key={movie.id}
             href={movieHref(movie.id, selectedDate)}
             className="group rounded-lg border border-stone-200 bg-white p-2 shadow-sm transition-colors hover:border-stone-950"
@@ -128,7 +124,7 @@ async function MovieIndexSection({
                 {movie.title}
               </h2>
             ) : null}
-          </Link>
+          </PendingLink>
         ))}
       </div>
     </div>

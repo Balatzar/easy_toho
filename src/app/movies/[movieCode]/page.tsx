@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Suspense } from "react";
 import { DEFAULT_CINEMA_SLUG, getCinemaBySlug } from "@/lib/cinemas";
 import { getMovieProjectionList } from "@/lib/toho-aggregate";
-import { movieHref, moviesHref, plannerHref } from "@/lib/routes";
+import { imaxHref, movieHref, moviesHref, plannerHref } from "@/lib/routes";
 import {
   type PlanningDay,
   type Showtime,
@@ -18,6 +17,7 @@ import {
   PartialScheduleWarning,
   SeatStatus,
 } from "../components";
+import { SectionNav } from "../../section-nav";
 
 export const metadata: Metadata = {
   title: "Movie Projections | Easy Toho",
@@ -57,20 +57,12 @@ export default async function MoviePage({
               Movie projections
             </h1>
           </div>
-          <nav className="flex flex-wrap gap-2 text-xs font-semibold">
-            <Link
-              href={plannerHref(DEFAULT_CINEMA_SLUG, selectedDate)}
-              className="rounded border border-stone-300 bg-white px-2.5 py-1 text-stone-700 hover:border-stone-950"
-            >
-              Cinemas
-            </Link>
-            <Link
-              href={moviesHref(selectedDate)}
-              className="rounded border border-red-700 bg-red-50 px-2.5 py-1 text-red-950 hover:bg-red-100"
-            >
-              Movies
-            </Link>
-          </nav>
+          <SectionNav
+            active="movies"
+            cinemasHref={plannerHref(DEFAULT_CINEMA_SLUG, selectedDate)}
+            moviesHref={moviesHref(selectedDate)}
+            imaxHref={imaxHref(selectedDate)}
+          />
         </header>
 
         <DateTabs

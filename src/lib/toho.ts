@@ -176,11 +176,13 @@ export async function getSchedule(
   selectedDate: string,
 ): Promise<ScheduleResult> {
   try {
-    return await getCachedScheduleSnapshot(
+    const schedule = await getCachedScheduleSnapshot(
       cinema.scheduleCode,
       cinema.theaterCode,
       selectedDate,
     );
+
+    return hidePastShowtimes(schedule, selectedDate, new Date());
   } catch (error) {
     return {
       ok: false,
@@ -329,6 +331,34 @@ function normalizeMovieGroups(movies: TohoMovie[]): MovieGroup[] {
   );
 }
 
+function hidePastShowtimes(
+  schedule: LoadedScheduleResult,
+  selectedDate: string,
+  now: Date,
+): LoadedScheduleResult {
+  const nowTokyoKey = tokyoDateTimeKey(now);
+  const cards = schedule.cards
+    .map((card) => {
+      const showtimes = card.showtimes.filter(
+        (showtime) =>
+          dateTimeKey(selectedDate, timeToMinutes(showtime.start)) >=
+          nowTokyoKey,
+      );
+
+      return {
+        ...card,
+        language: bestLanguage(showtimes),
+        showtimes,
+      };
+    })
+    .filter((card) => card.showtimes.length > 0);
+
+  return {
+    ...schedule,
+    cards: sortMovieCards(cards),
+  };
+}
+
 async function getArtworkByMovieCode(
   groups: MovieGroup[],
 ): Promise<Map<string, string>> {
@@ -414,11 +444,14 @@ function sortShowtimes(showtimes: Showtime[]): Showtime[] {
 
 function imaxRankValue(showtimes: Showtime[], language: LanguageRank): number {
   return showtimes.some(
-    (showtime) =>
-      showtime.language === language && hasImaxFormat(showtime.formats),
+    (showtime) => showtime.language === language && isImaxScreening(showtime),
   )
     ? 1
     : 0;
+}
+
+export function isImaxScreening(showtime: Showtime): boolean {
+  return hasImaxFormat(showtime.formats);
 }
 
 function hasImaxFormat(formats: string[]): boolean {
@@ -700,17 +733,39 @@ function fallbackPlanningDays(): PlanningDay[] {
 }
 
 function todayTokyo(): string {
+  return tokyoDateTime(new Date()).date;
+}
+
+function tokyoDateTimeKey(date: Date): number {
+  const current = tokyoDateTime(date);
+  return dateTimeKey(current.date, current.minutes);
+}
+
+function tokyoDateTime(date: Date): { date: string; minutes: number } {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: TOKYO_TIME_ZONE,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).formatToParts(new Date());
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
 
   const value = (type: string) =>
     parts.find((part) => part.type === type)?.value ?? "";
+  const hour = Number(value("hour") || "0") % 24;
+  const minute = Number(value("minute") || "0");
 
-  return `${value("year")}-${value("month")}-${value("day")}`;
+  return {
+    date: `${value("year")}-${value("month")}-${value("day")}`,
+    minutes: hour * 60 + minute,
+  };
+}
+
+function dateTimeKey(date: string, minutes: number): number {
+  const parsed = parseDateParts(date);
+  return Date.UTC(parsed.year, parsed.month - 1, parsed.day) / 60_000 + minutes;
 }
 
 function dateToToho(date: string): string {

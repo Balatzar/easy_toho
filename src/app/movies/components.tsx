@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 import type { CinemaScheduleFailure } from "@/lib/toho-aggregate";
 import {
@@ -6,6 +5,7 @@ import {
   type PlanningDay,
   firstSelectableDate,
 } from "@/lib/toho";
+import { PendingLink } from "../pending-link";
 
 export function DateTabs({
   days,
@@ -41,7 +41,7 @@ export function DateTabs({
         }
 
         return (
-          <Link
+          <PendingLink
             key={day.date}
             href={href}
             className={[
@@ -55,7 +55,7 @@ export function DateTabs({
             <span className={active ? "text-xs text-stone-200" : "text-xs"}>
               {day.label}
             </span>
-          </Link>
+          </PendingLink>
         );
       })}
     </nav>

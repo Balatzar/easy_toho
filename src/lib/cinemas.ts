@@ -124,6 +124,10 @@ export const TOKYO_CINEMAS: Cinema[] = [
   },
 ];
 
+export const IMAX_CAPABLE_CINEMAS = TOKYO_CINEMAS.filter(
+  (cinema) => cinema.imax,
+);
+
 export function getCinemaBySlug(slug: string | undefined): Cinema {
   return (
     TOKYO_CINEMAS.find((cinema) => cinema.slug === slug) ??

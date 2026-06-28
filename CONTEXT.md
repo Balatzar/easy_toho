@@ -24,6 +24,10 @@ _Avoid_: Tokyo location, central Tokyo cinema
 A static Cinema-level reference label indicating whether the Cinema has an IMAX or IMAX Laser auditorium. It does not guarantee the selected Movie has an IMAX Published Showtime that day.
 _Avoid_: IMAX showtime availability, IMAX movie
 
+**IMAX Screening**:
+A TOHO Cinemas Screening whose Screening Format includes IMAX or IMAX Laser on the Selected Day.
+_Avoid_: IMAX-capable cinema, IMAX movie
+
 **Screening Format**:
 The presentation attributes that affect the viewing experience, such as IMAX, TCX, MX4D, Dolby Atmos, 2D or 3D, subtitled, or dubbed.
 _Avoid_: Screen kind, screen type
@@ -103,6 +107,10 @@ _Avoid_: English movie, foreign movie
 **English-Watchable Movie**:
 A Movie that has at least one English-Watchable Screening on the Selected Day at any Tokyo Cinema.
 _Avoid_: Available in English movie, English title
+
+**IMAX-Available Movie**:
+A Movie that has at least one IMAX Screening on the Selected Day at any Tokyo Cinema.
+_Avoid_: IMAX movie, movie in an IMAX-capable Cinema
 
 **Japanese-Language Screening**:
 A TOHO Cinemas Screening whose Language Presentation does not indicate English-watchable subtitles or audio. It remains visible below English-Watchable Screenings.
