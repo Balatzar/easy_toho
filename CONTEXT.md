@@ -12,6 +12,10 @@ _Avoid_: TOHO movie
 A specific movie venue where screenings take place, such as TOHO Cinemas Shinjuku or Shinjuku Piccadilly.
 _Avoid_: Location, theater
 
+**Cinema Map**:
+A geographic map of Tokyo Cinemas used to understand where Cinemas are in Tokyo and choose a Cinema on the Selected Day.
+_Avoid_: Movie map, location list
+
 **Schedule Source**:
 An external cinema website that publishes schedule data for one or more Cinemas, such as TOHO Cinemas, SMT Cinemas, or T-Joy. SMT Cinemas is the Schedule Source for venues on `smt-cinema.com`, including Shinjuku Piccadilly. T-Joy is the Schedule Source for Shinjuku Wald 9, T-Joy SEIBU Oizumi, and T-Joy PRINCE Shinagawa.
 _Avoid_: Cinema, venue, source system
@@ -19,6 +23,10 @@ _Avoid_: Cinema, venue, source system
 **Shared Schedule Code Cinema**:
 A Cinema that shares a TOHO schedule code with another Cinema but remains a separate user-facing Cinema, such as TOHO Cinemas Hibiya and TOHO Cinemas Chanter.
 _Avoid_: Combined cinema, merged venue
+
+**Multi-Site Cinema**:
+A single user-facing Cinema whose screenings are listed under one Cinema but whose auditoriums or public entrances span multiple nearby buildings, such as Kinshicho Toho.
+_Avoid_: Split cinema, duplicate cinema
 
 **Tokyo Cinema**:
 A Cinema whose official address is in Tokyo prefecture.

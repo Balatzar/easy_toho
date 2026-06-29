@@ -17,6 +17,7 @@ import {
   PartialScheduleWarning,
   SeatStatus,
 } from "../components";
+import { CinemaMapLink } from "../../cinema-map-link";
 import { SectionNav } from "../../section-nav";
 
 export const metadata: Metadata = {
@@ -144,8 +145,12 @@ async function MovieProjectionSection({
           >
             <div className="flex flex-col gap-1 border-b border-stone-100 pb-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-stone-950">
-                  {projectionCinema.cinema.name}
+                <h3 className="inline-flex items-center gap-1 text-lg font-semibold text-stone-950">
+                  <span>{projectionCinema.cinema.name}</span>
+                  <CinemaMapLink
+                    cinema={projectionCinema.cinema}
+                    className="-my-1 h-5 w-5"
+                  />
                 </h3>
                 <p className="text-sm text-stone-600">
                   {projectionCinema.cinema.area}

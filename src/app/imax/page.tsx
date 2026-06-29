@@ -23,6 +23,7 @@ import {
   PartialScheduleWarning,
   SeatStatus,
 } from "../movies/components";
+import { CinemaMapLink } from "../cinema-map-link";
 import { PendingLink } from "../pending-link";
 import { SectionNav } from "../section-nav";
 
@@ -177,8 +178,12 @@ function ImaxMovieCard({
           {movie.cinemas.map((projectionCinema) => (
             <div key={projectionCinema.cinema.slug} className="py-3 first:pt-0">
               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                <h3 className="text-sm font-semibold text-stone-950">
-                  {projectionCinema.cinema.name}
+                <h3 className="inline-flex items-center gap-1 text-sm font-semibold text-stone-950">
+                  <span>{projectionCinema.cinema.name}</span>
+                  <CinemaMapLink
+                    cinema={projectionCinema.cinema}
+                    className="-my-1 h-5 w-5"
+                  />
                 </h3>
                 <span className="text-xs text-stone-500">
                   {projectionCinema.cinema.area}

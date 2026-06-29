@@ -17,6 +17,8 @@ import {
   normalizeSelectedDate,
 } from "@/lib/schedules";
 import { imaxHref, moviesHref, movieHref } from "@/lib/routes";
+import { CinemaMapLink } from "./cinema-map-link";
+import { CinemaSelector } from "./cinema-selector";
 import { PendingLink } from "./pending-link";
 import { SectionNav } from "./section-nav";
 
@@ -64,44 +66,13 @@ export default async function Home({
           selectedCinemaSlug={selectedCinema.slug}
         />
 
-        <div className="grid gap-5 lg:grid-cols-[280px_minmax(0,1fr)]">
+        <div className="grid gap-5 lg:grid-cols-[minmax(500px,620px)_minmax(0,1fr)]">
           <aside className="lg:sticky lg:top-4 lg:self-start">
-            <div className="rounded-lg border border-stone-200 bg-white p-3 shadow-sm">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <h2 className="text-sm font-semibold text-stone-950">Cinema</h2>
-                <span className="text-xs text-stone-500">
-                  {TOKYO_CINEMAS.length} Tokyo
-                </span>
-              </div>
-              <nav className="grid gap-1.5" aria-label="Tokyo Cinemas">
-                {TOKYO_CINEMAS.map((cinema) => {
-                  const selected = cinema.slug === selectedCinema.slug;
-
-                  return (
-                    <PendingLink
-                      key={cinema.slug}
-                      href={plannerHref(cinema.slug, selectedDate)}
-                      className={[
-                        "rounded-md border px-3 py-2 text-left transition-colors",
-                        selected
-                          ? "border-red-700 bg-red-50 text-red-950"
-                          : "border-transparent text-stone-700 hover:border-stone-200 hover:bg-stone-50",
-                      ].join(" ")}
-                    >
-                      <span className="block text-sm font-semibold">
-                        {cinema.name}
-                      </span>
-                      <span className="mt-1 flex flex-wrap items-center gap-1.5">
-                        <span className="text-xs text-stone-500">
-                          {cinema.area}
-                        </span>
-                        <ImaxBadge imax={cinema.imax} compact />
-                      </span>
-                    </PendingLink>
-                  );
-                })}
-              </nav>
-            </div>
+            <CinemaSelector
+              cinemas={TOKYO_CINEMAS}
+              selectedCinemaSlug={selectedCinema.slug}
+              selectedDate={selectedDate}
+            />
           </aside>
 
           <section className="min-w-0">
@@ -213,7 +184,7 @@ async function ScheduleSection({
       {schedule.ok ? (
         <MovieList
           cards={schedule.cards}
-          cinemaName={selectedCinema.name}
+          cinema={selectedCinema}
           selectedDate={selectedDate}
         />
       ) : (
@@ -242,8 +213,9 @@ function ScheduleHeader({
     <div className="mb-4 flex flex-col gap-2 border-b border-stone-200 pb-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <div className="flex flex-wrap items-center gap-2">
-          <p className="text-sm font-semibold text-stone-950">
-            {selectedCinema.name}
+          <p className="inline-flex items-center gap-1 text-sm font-semibold text-stone-950">
+            <span>{selectedCinema.name}</span>
+            <CinemaMapLink cinema={selectedCinema} className="-my-1 h-5 w-5" />
           </p>
           <ImaxBadge imax={selectedCinema.imax} />
         </div>
@@ -327,11 +299,11 @@ function SkeletonMovieCard() {
 
 function MovieList({
   cards,
-  cinemaName,
+  cinema,
   selectedDate,
 }: {
   cards: MovieCard[];
-  cinemaName: string;
+  cinema: Cinema;
   selectedDate: string;
 }) {
   if (cards.length === 0) {
@@ -353,7 +325,7 @@ function MovieList({
         <MovieCardView
           key={card.id}
           card={card}
-          cinemaName={cinemaName}
+          cinema={cinema}
           selectedDate={selectedDate}
         />
       ))}
@@ -363,11 +335,11 @@ function MovieList({
 
 function MovieCardView({
   card,
-  cinemaName,
+  cinema,
   selectedDate,
 }: {
   card: MovieCard;
-  cinemaName: string;
+  cinema: Cinema;
   selectedDate: string;
 }) {
   const englishShowtimes = card.showtimes.filter(
@@ -381,41 +353,51 @@ function MovieCardView({
   const sourceLabelPrefix = sourceLabels.length > 1 ? "Source labels" : "Source";
 
   return (
-    <PendingLink
-      href={movieHref(card.id, selectedDate)}
-      className="grid gap-4 rounded-lg border border-stone-200 bg-white p-3 shadow-sm transition-colors hover:border-stone-950 sm:grid-cols-[112px_minmax(0,1fr)]"
-    >
-      <div
-        className="flex aspect-[2/3] min-h-40 items-end overflow-hidden rounded-md bg-stone-200 bg-cover bg-center"
-        style={
-          card.artworkUrl
-            ? {
-                backgroundImage: `linear-gradient(to top, rgba(0,0,0,0.46), rgba(0,0,0,0.02)), url(${card.artworkUrl})`,
-              }
-            : undefined
-        }
-        aria-label={card.artworkUrl ? `${card.title} artwork` : undefined}
+    <article className="grid gap-4 rounded-lg border border-stone-200 bg-white p-3 shadow-sm transition-colors hover:border-stone-950 sm:grid-cols-[112px_minmax(0,1fr)]">
+      <PendingLink
+        href={movieHref(card.id, selectedDate)}
+        className="block rounded-md transition-opacity hover:opacity-90"
       >
-        {!card.artworkUrl ? (
-          <span className="p-3 text-sm font-semibold text-stone-500">
-            No artwork
-          </span>
-        ) : null}
-      </div>
+        <div
+          className="flex aspect-[2/3] min-h-40 items-end overflow-hidden rounded-md bg-stone-200 bg-cover bg-center"
+          style={
+            card.artworkUrl
+              ? {
+                  backgroundImage: `linear-gradient(to top, rgba(0,0,0,0.46), rgba(0,0,0,0.02)), url(${card.artworkUrl})`,
+                }
+              : undefined
+          }
+          aria-label={card.artworkUrl ? `${card.title} artwork` : undefined}
+        >
+          {!card.artworkUrl ? (
+            <span className="p-3 text-sm font-semibold text-stone-500">
+              No artwork
+            </span>
+          ) : null}
+        </div>
+      </PendingLink>
 
       <div className="min-w-0">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-xl font-semibold tracking-normal text-stone-950">
-                {card.title}
-              </h2>
+              <PendingLink
+                href={movieHref(card.id, selectedDate)}
+                className="min-w-0 hover:underline"
+              >
+                <h2 className="break-words text-xl font-semibold tracking-normal text-stone-950">
+                  {card.title}
+                </h2>
+              </PendingLink>
               <LanguageBadge language={card.language} />
               {card.rating ? <MetaBadge>{card.rating}</MetaBadge> : null}
             </div>
-            <p className="mt-1 text-sm text-stone-600">
+            <p className="mt-1 flex flex-wrap items-center gap-x-1 text-sm text-stone-600">
               {card.runtimeMinutes ? `${card.runtimeMinutes} min · ` : ""}
-              {cinemaName}
+              <span className="inline-flex items-center gap-1">
+                <span>{cinema.name}</span>
+                <CinemaMapLink cinema={cinema} className="-my-1 h-5 w-5" />
+              </span>
             </p>
             {sourceLabelText ? (
               <p className="mt-1 break-words text-xs text-stone-500">
@@ -435,7 +417,7 @@ function MovieCardView({
           <ShowtimeGroup label="Japanese" showtimes={otherShowtimes} />
         ) : null}
       </div>
-    </PendingLink>
+    </article>
   );
 }
 

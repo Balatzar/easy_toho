@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import type { CinemaScheduleFailure } from "@/lib/schedule-aggregate";
 import {
   type LanguageRank,
@@ -6,6 +6,7 @@ import {
   type ShowtimeAvailability,
   firstSelectableDate,
 } from "@/lib/schedules";
+import { CinemaMapLink } from "../cinema-map-link";
 import { PendingLink } from "../pending-link";
 
 export function DateTabs({
@@ -73,7 +74,19 @@ export function PartialScheduleWarning({
   return (
     <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
       Could not load:{" "}
-      {failedCinemas.map((failure) => failure.cinema.name).join(", ")}.
+      {failedCinemas.map((failure, index) => (
+        <Fragment key={failure.cinema.slug}>
+          {index > 0 ? ", " : null}
+          <span className="inline-flex items-center gap-1">
+            <span>{failure.cinema.name}</span>
+            <CinemaMapLink
+              cinema={failure.cinema}
+              className="-my-1 h-5 w-5 hover:bg-amber-100"
+            />
+          </span>
+        </Fragment>
+      ))}
+      .
     </div>
   );
 }
