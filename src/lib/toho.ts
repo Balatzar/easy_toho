@@ -1,5 +1,14 @@
 import { unstable_cache } from "next/cache";
 import type { TohoCinemaConfig } from "./cinemas";
+import {
+  type LanguageRank,
+  classifyLanguage,
+  extractFormats,
+  languageLabel,
+  normalizeTime,
+  toHalfWidth,
+  unique,
+} from "./schedule-model";
 
 const TOHO_API_BASE = "https://api2.tohotheater.jp";
 const TOHO_MOVIE_BASE = "https://hlo.tohotheater.jp/net/movie/TNPI3060J01.do";
@@ -17,8 +26,6 @@ export type PlanningDay = {
 
 export type SeatSalesStatusCode = "A" | "B" | "C" | "D" | "G" | "unknown";
 
-export type LanguageRank = "english" | "japanese";
-
 export type Showtime = {
   start: string;
   end: string;
@@ -32,14 +39,11 @@ export type Showtime = {
 };
 
 export type MovieCard = {
-  id: string;
-  title: string;
   rawEnglishLabels: string[];
   sourceLabels: string[];
   artworkUrl: string | null;
   runtimeMinutes: number | null;
   rating: string | null;
-  language: LanguageRank;
   showtimes: Showtime[];
 };
 
@@ -113,7 +117,6 @@ type TohoScheduleItem = {
 };
 
 type MovieGroup = {
-  id: string;
   mcode: string;
   rawEnglishLabels: Set<string>;
   sourceLabels: Set<string>;
@@ -176,13 +179,11 @@ export async function getSchedule(
   selectedDate: string,
 ): Promise<ScheduleResult> {
   try {
-    const schedule = await getCachedScheduleSnapshot(
+    return await getCachedScheduleSnapshot(
       cinema.scheduleCode,
       cinema.theaterCode,
       selectedDate,
     );
-
-    return hidePastShowtimes(schedule, selectedDate, new Date());
   } catch (error) {
     return {
       ok: false,
@@ -243,29 +244,9 @@ async function fetchScheduleSnapshot(
 
   return {
     ok: true,
-    cards: sortMovieCards(cards),
+    cards,
     fetchedAt,
   };
-}
-
-export function firstSelectableDate(days: PlanningDay[]): string {
-  return days.find((day) => day.selectable)?.date ?? days[0]?.date ?? todayTokyo();
-}
-
-export function normalizeSelectedDate(
-  rawDate: string | undefined,
-  days: PlanningDay[],
-): string {
-  const normalized = normalizeUrlDate(rawDate);
-
-  if (
-    normalized &&
-    days.some((day) => day.date === normalized && day.selectable)
-  ) {
-    return normalized;
-  }
-
-  return firstSelectableDate(days);
 }
 
 function normalizeMovieGroups(movies: TohoMovie[]): MovieGroup[] {
@@ -278,7 +259,6 @@ function normalizeMovieGroups(movies: TohoMovie[]): MovieGroup[] {
     let group = groups.get(mcode);
     if (!group) {
       group = {
-        id: mcode,
         mcode,
         rawEnglishLabels: new Set(),
         sourceLabels: new Set(),
@@ -331,34 +311,6 @@ function normalizeMovieGroups(movies: TohoMovie[]): MovieGroup[] {
   );
 }
 
-function hidePastShowtimes(
-  schedule: LoadedScheduleResult,
-  selectedDate: string,
-  now: Date,
-): LoadedScheduleResult {
-  const nowTokyoKey = tokyoDateTimeKey(now);
-  const cards = schedule.cards
-    .map((card) => {
-      const showtimes = card.showtimes.filter(
-        (showtime) =>
-          dateTimeKey(selectedDate, timeToMinutes(showtime.start)) >=
-          nowTokyoKey,
-      );
-
-      return {
-        ...card,
-        language: bestLanguage(showtimes),
-        showtimes,
-      };
-    })
-    .filter((card) => card.showtimes.length > 0);
-
-  return {
-    ...schedule,
-    cards: sortMovieCards(cards),
-  };
-}
-
 async function getArtworkByMovieCode(
   groups: MovieGroup[],
 ): Promise<Map<string, string>> {
@@ -400,159 +352,15 @@ function toMovieCard(
 ): MovieCard {
   const rawEnglishLabels = Array.from(group.rawEnglishLabels);
   const sourceLabels = Array.from(group.sourceLabels);
-  const title = displayTitle(rawEnglishLabels, sourceLabels);
-  const language = bestLanguage(group.showtimes);
 
   return {
-    id: group.id,
-    title,
     rawEnglishLabels,
     sourceLabels,
     artworkUrl: artworkByCode.get(group.mcode) ?? null,
     runtimeMinutes: group.runtimeMinutes,
     rating: group.rating,
-    language,
-    showtimes: sortShowtimes(group.showtimes),
+    showtimes: group.showtimes,
   };
-}
-
-function sortMovieCards(cards: MovieCard[]): MovieCard[] {
-  return cards.sort((a, b) => {
-    const rank = languageRankValue(a.language) - languageRankValue(b.language);
-    if (rank !== 0) return rank;
-
-    const imaxRank =
-      imaxRankValue(b.showtimes, b.language) -
-      imaxRankValue(a.showtimes, a.language);
-    if (imaxRank !== 0) return imaxRank;
-
-    return earliestMinutes(a.showtimes) - earliestMinutes(b.showtimes);
-  });
-}
-
-function sortShowtimes(showtimes: Showtime[]): Showtime[] {
-  return [...showtimes].sort((a, b) => {
-    const language = languageRankValue(a.language) - languageRankValue(b.language);
-    if (language !== 0) return language;
-
-    const imax = Number(hasImaxFormat(b.formats)) - Number(hasImaxFormat(a.formats));
-    if (imax !== 0) return imax;
-
-    return timeToMinutes(a.start) - timeToMinutes(b.start);
-  });
-}
-
-function imaxRankValue(showtimes: Showtime[], language: LanguageRank): number {
-  return showtimes.some(
-    (showtime) => showtime.language === language && isImaxScreening(showtime),
-  )
-    ? 1
-    : 0;
-}
-
-export function isImaxScreening(showtime: Showtime): boolean {
-  return hasImaxFormat(showtime.formats);
-}
-
-function hasImaxFormat(formats: string[]): boolean {
-  return formats.some((format) => format === "IMAX" || format === "IMAX Laser");
-}
-
-function displayTitle(
-  rawEnglishLabels: string[],
-  sourceLabels: string[],
-): string {
-  const cleaned = rawEnglishLabels
-    .map(cleanEnglishLabel)
-    .filter(Boolean)
-    .sort((a, b) => a.length - b.length);
-
-  if (cleaned[0]) return cleaned[0];
-
-  return sourceLabels.sort((a, b) => a.length - b.length)[0] ?? "Unmatched movie";
-}
-
-function cleanEnglishLabel(label: string): string {
-  const base = label
-    .replace(/\s*\/\s*(SUB|DUB).*$/i, "")
-    .replace(/\b(SCREEN\s*X|SCREENX|DOLBY[-\s]?ATMOS|ATMOS|IMAXLASER|IMAX\s*LASER|IMAX|MX4D|TCX|4DX|3D|2D|BABY CLUB THEATER)\b/gi, "")
-    .replace(/\s{2,}/g, " ")
-    .trim();
-
-  return titleCaseIfNeeded(base);
-}
-
-function titleCaseIfNeeded(value: string): string {
-  const letters = value.replace(/[^A-Za-z]/g, "");
-  if (!letters || letters !== letters.toUpperCase()) return value;
-
-  const smallWords = new Set(["and", "or", "the", "of", "in", "a", "an"]);
-
-  return value
-    .toLowerCase()
-    .split(/(\s+|-)/)
-    .map((part, index) => {
-      if (/^\s+$|^-$/.test(part)) return part;
-      if (/^\d+$/.test(part)) return part;
-      if (/^(i|ii|iii|iv|v|vi|vii|viii|ix|x)$/.test(part)) {
-        return part.toUpperCase();
-      }
-
-      const previousWord = previousNonSeparator(value, index);
-      if (index > 0 && previousWord?.endsWith(":")) {
-        return part.charAt(0).toUpperCase() + part.slice(1);
-      }
-
-      if (index > 0 && smallWords.has(part)) return part;
-
-      return part.charAt(0).toUpperCase() + part.slice(1);
-    })
-    .join("");
-}
-
-function previousNonSeparator(value: string, partIndex: number): string | null {
-  const parts = value.toLowerCase().split(/(\s+|-)/);
-
-  for (let index = partIndex - 1; index >= 0; index -= 1) {
-    if (!/^\s+$|^-$/.test(parts[index])) {
-      return parts[index];
-    }
-  }
-
-  return null;
-}
-
-function classifyLanguage(englishLabel: string, sourceLabel: string): LanguageRank {
-  const normalizedEnglish = toHalfWidth(englishLabel).toUpperCase();
-
-  if (/\bSUB\b/.test(normalizedEnglish) || /字幕/.test(sourceLabel)) {
-    return "english";
-  }
-
-  return "japanese";
-}
-
-function extractFormats(englishLabel: string, sourceLabel: string): string[] {
-  const normalized = `${toHalfWidth(englishLabel)} ${sourceLabel}`.toUpperCase();
-  const formats: string[] = [];
-
-  if (/\bSUB\b|字幕/.test(normalized)) formats.push("Subtitled");
-  if (/\bDUB\b|吹替|日本語版/.test(normalized)) formats.push("Dubbed");
-  if (/SCREEN\s*X|SCREENX/.test(normalized)) formats.push("Screen X");
-  if (/DOLBY[-\s]?ATMOS|ATMOS/.test(normalized)) formats.push("Dolby Atmos");
-  if (/DOLBY\s*CINEMA/.test(normalized)) formats.push("Dolby Cinema");
-  if (/IMAX\s*LASER|IMAXLASER/.test(normalized)) formats.push("IMAX Laser");
-  else if (/IMAX/.test(normalized)) formats.push("IMAX");
-  if (/MX4D/.test(normalized)) formats.push("MX4D");
-  if (/\bTCX\b/.test(normalized)) formats.push("TCX");
-  if (/PREMIUM\s*THEATER/.test(normalized)) formats.push("Premium Theater");
-  if (/\b3D\b/.test(normalized)) formats.push("3D");
-  if (/轟音/.test(sourceLabel)) formats.push("Roaring sound");
-  if (/BABY CLUB THEATER|赤ちゃん連れ限定/.test(normalized)) {
-    formats.push("Baby club");
-  }
-
-  return unique(formats);
 }
 
 function extractScreenFormats(screen: TohoScreen): string[] {
@@ -641,48 +449,6 @@ function eventLabel(eventIcon: string | undefined): string | null {
   }
 }
 
-function bestLanguage(showtimes: Showtime[]): LanguageRank {
-  return showtimes.reduce<LanguageRank>((best, showtime) => {
-    return languageRankValue(showtime.language) < languageRankValue(best)
-      ? showtime.language
-      : best;
-  }, "japanese");
-}
-
-function languageLabel(language: LanguageRank): string {
-  switch (language) {
-    case "english":
-      return "English-watchable";
-    case "japanese":
-      return "Japanese";
-  }
-}
-
-function languageRankValue(language: LanguageRank): number {
-  switch (language) {
-    case "english":
-      return 0;
-    case "japanese":
-      return 1;
-  }
-}
-
-function earliestMinutes(showtimes: Showtime[]): number {
-  return Math.min(...showtimes.map((showtime) => timeToMinutes(showtime.start)));
-}
-
-function timeToMinutes(time: string): number {
-  const [hour = "0", minute = "0"] = time.split(":");
-  return Number(hour) * 60 + Number(minute);
-}
-
-function normalizeTime(time: string): string {
-  const [hour = "", minute = ""] = time.split(":");
-  if (!hour || !minute) return time;
-
-  return `${Number(hour)}:${minute.padStart(2, "0")}`;
-}
-
 function normalizeThumbnail(thumbnail: string | undefined): string | null {
   if (!thumbnail) return null;
   if (thumbnail.startsWith("http://")) return thumbnail.replace("http://", "https://");
@@ -733,39 +499,16 @@ function fallbackPlanningDays(): PlanningDay[] {
 }
 
 function todayTokyo(): string {
-  return tokyoDateTime(new Date()).date;
-}
-
-function tokyoDateTimeKey(date: Date): number {
-  const current = tokyoDateTime(date);
-  return dateTimeKey(current.date, current.minutes);
-}
-
-function tokyoDateTime(date: Date): { date: string; minutes: number } {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: TOKYO_TIME_ZONE,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(date);
+  }).formatToParts(new Date());
 
   const value = (type: string) =>
     parts.find((part) => part.type === type)?.value ?? "";
-  const hour = Number(value("hour") || "0") % 24;
-  const minute = Number(value("minute") || "0");
-
-  return {
-    date: `${value("year")}-${value("month")}-${value("day")}`,
-    minutes: hour * 60 + minute,
-  };
-}
-
-function dateTimeKey(date: string, minutes: number): number {
-  const parsed = parseDateParts(date);
-  return Date.UTC(parsed.year, parsed.month - 1, parsed.day) / 60_000 + minutes;
+  return `${value("year")}-${value("month")}-${value("day")}`;
 }
 
 function dateToToho(date: string): string {
@@ -774,15 +517,6 @@ function dateToToho(date: string): string {
 
 function tohoToDate(date: string): string {
   return `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}`;
-}
-
-function normalizeUrlDate(rawDate: string | undefined): string | null {
-  if (!rawDate) return null;
-
-  if (/^\d{8}$/.test(rawDate)) return tohoToDate(rawDate);
-  if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) return rawDate;
-
-  return null;
 }
 
 function parseDateParts(date: string): {
@@ -838,16 +572,6 @@ async function fetchText(
 
 function unixSeconds(): string {
   return Math.floor(Date.now() / 1000).toString();
-}
-
-function unique(values: string[]): string[] {
-  return Array.from(new Set(values.filter(Boolean)));
-}
-
-function toHalfWidth(value: string): string {
-  return value.replace(/[！-～]/g, (char) =>
-    String.fromCharCode(char.charCodeAt(0) - 0xfee0),
-  );
 }
 
 function escapeRegExp(value: string): string {

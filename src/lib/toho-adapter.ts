@@ -5,6 +5,7 @@ import {
   type ScheduleResult,
   type Showtime,
   type ShowtimeAvailability,
+  bestLanguage,
   displayTitle,
   hidePastShowtimes,
   movieIdentityId,
@@ -72,7 +73,7 @@ function toMovieCard(card: TohoMovieCard): MovieCard {
     artworkUrl: card.artworkUrl,
     runtimeMinutes: card.runtimeMinutes,
     rating: card.rating,
-    language: card.language,
+    language: bestLanguage(showtimes),
     showtimes,
   };
 }
