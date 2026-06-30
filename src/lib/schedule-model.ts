@@ -1,6 +1,7 @@
 export const SOURCE_CACHE_SECONDS = 3_600;
 
 const TOKYO_TIME_ZONE = "Asia/Tokyo";
+const MOVIE_IDENTITY_RUNTIME_TOLERANCE_MINUTES = 3;
 
 export type ScheduleSourceId = "toho" | "smt" | "tjoy" | "eiga";
 
@@ -48,6 +49,11 @@ export type MovieCard = {
   language: LanguageRank;
   showtimes: Showtime[];
 };
+
+export type MovieIdentityReference = Pick<
+  MovieCard,
+  "id" | "rawEnglishLabels" | "runtimeMinutes"
+>;
 
 export type ScheduleResult =
   | {
@@ -188,6 +194,22 @@ export function movieIdentityId({
   const sourceSlug = slugify(sourceTitle) || `label-${stableHash(sourceTitle)}`;
 
   return compactSlug(["unmatched", sourceId, sourceSlug, runtime]);
+}
+
+export function sameMovieIdentity(
+  current: MovieIdentityReference,
+  next: MovieIdentityReference,
+): boolean {
+  if (current.id === next.id) return true;
+
+  const currentTitleKey = movieMergeTitleKey(current.rawEnglishLabels);
+  const nextTitleKey = movieMergeTitleKey(next.rawEnglishLabels);
+
+  return (
+    !!currentTitleKey &&
+    currentTitleKey === nextTitleKey &&
+    runtimesMatch(current.runtimeMinutes, next.runtimeMinutes)
+  );
 }
 
 export function displayTitle(
@@ -363,6 +385,44 @@ function cleanSourceLabelForIdentity(label: string): string {
     .replace(/（[^）]*本編[:：]\s*\d+\s*分[^）]*）/g, "")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function movieMergeTitleKey(rawEnglishLabels: string[]): string | null {
+  return (
+    rawEnglishLabels
+      .map(normalizeEnglishLabelForMerge)
+      .filter(Boolean)
+      .sort((a, b) => a.length - b.length)[0] ?? null
+  );
+}
+
+function normalizeEnglishLabelForMerge(label: string): string {
+  return toHalfWidth(label)
+    .replace(/^\s*(SUB|DUB|JP\s*SUB)\s*[/:]\s*/i, "")
+    .replace(
+      /\s*\/\s*(SUB|DUB|ENGLISH\s*SUBTITLES?|JAPANESE\s*SUBTITLES?).*$/i,
+      "",
+    )
+    .replace(
+      /\b(SCREEN\s*X|SCREENX|DOLBY[-\s]?ATMOS|ATMOS|DOLBY\s*CINEMA|IMAXLASER|IMAX\s*LASER|IMAX|MX4D|TCX|4DX|4D|3D|BABY CLUB THEATER)\b/gi,
+      "",
+    )
+    .replace(/\b([A-Za-z]{2,})(\d+)\b/g, "$1 $2")
+    .replace(/['`\u2018\u2019]/g, "")
+    .replace(/[^A-Za-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase();
+}
+
+function runtimesMatch(
+  current: number | null,
+  next: number | null,
+): boolean {
+  if (!current || !next) return true;
+  return (
+    Math.abs(current - next) <= MOVIE_IDENTITY_RUNTIME_TOLERANCE_MINUTES
+  );
 }
 
 function titleCaseIfNeeded(value: string): string {
