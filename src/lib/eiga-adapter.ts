@@ -24,6 +24,10 @@ import {
   unique,
   upcomingPlanningDays,
 } from "./schedule-model";
+import {
+  fetchTextWithTimeout,
+  htmlText,
+} from "./source-adapter-support";
 
 const EIGA_BASE = "https://eiga.com";
 const EIGA_SCREEN_LABEL = "Screen not listed";
@@ -63,7 +67,7 @@ export async function getPlanningDays(
 
 const getCachedPlanningDays = unstable_cache(
   async (theaterPath: string): Promise<PlanningDay[]> => {
-    const html = await fetchText(eigaUrl(theaterPath), 8_000);
+    const html = await fetchEigaText(eigaUrl(theaterPath), 8_000);
     return parsePlanningDays(html);
   },
   ["eiga-planning-days-v1"],
@@ -99,7 +103,7 @@ const getCachedScheduleSnapshot = unstable_cache(
     selectedDate: string,
   ): Promise<Extract<ScheduleResult, { ok: true }>> => {
     const fetchedAt = new Date().toISOString();
-    const html = await fetchText(eigaUrl(theaterPath), 10_000);
+    const html = await fetchEigaText(eigaUrl(theaterPath), 10_000);
 
     return {
       ok: true,
@@ -113,7 +117,10 @@ const getCachedScheduleSnapshot = unstable_cache(
 
 const getCachedMovieDetail = unstable_cache(
   async (providerMovieId: string): Promise<EigaMovieDetail> => {
-    const html = await fetchText(`${EIGA_BASE}/movie/${providerMovieId}/`, 8_000);
+    const html = await fetchEigaText(
+      `${EIGA_BASE}/movie/${providerMovieId}/`,
+      8_000,
+    );
     return parseMovieDetail(html);
   },
   ["eiga-movie-detail-v1"],
@@ -401,24 +408,17 @@ function eigaAvailabilityLabel(
   return fallback === "unknown" ? "Unknown" : fallback;
 }
 
-async function fetchText(url: string, timeoutMs: number): Promise<string> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const response = await fetch(url, {
-      signal: controller.signal,
+async function fetchEigaText(url: string, timeoutMs: number): Promise<string> {
+  return fetchTextWithTimeout(url, {
+    timeoutMs,
+    init: {
       headers: {
         "user-agent": "EasyToho/0.1 (+https://eiga.com schedule adapter)",
       },
-    });
-    if (!response.ok) {
-      throw new Error(`eiga.com returned ${response.status} for ${url}`);
-    }
-    return await response.text();
-  } finally {
-    clearTimeout(timeout);
-  }
+    },
+    errorMessage: (response, requestUrl) =>
+      `eiga.com returned ${response.status} for ${requestUrl}`,
+  });
 }
 
 function eigaUrl(path: string): string {
@@ -438,25 +438,4 @@ function attr(attributes: string, name: string): string | null {
     attributes.match(new RegExp(`\\b${name}='([^']*)'`))?.[1] ??
     null
   );
-}
-
-function htmlText(value: string): string {
-  return decodeHtml(value.replace(/<br\s*\/?>/g, " "))
-    .replace(/<[^>]+>/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function decodeHtml(value: string): string {
-  return value
-    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
-    .replace(/&#x([\da-f]+);/gi, (_, code) =>
-      String.fromCharCode(Number.parseInt(code, 16)),
-    )
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">");
 }

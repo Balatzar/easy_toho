@@ -22,6 +22,10 @@ import {
   unique,
   upcomingPlanningDays,
 } from "./schedule-model";
+import {
+  fetchWithTimeout,
+  htmlText,
+} from "./source-adapter-support";
 
 const TJOY_BASE = "https://tjoy.jp";
 
@@ -432,7 +436,7 @@ async function fetchPageSession(
   sitePath: string,
   timeoutMs: number,
 ): Promise<TjoyPageSession> {
-  const response = await fetchWithTimeout(`${TJOY_BASE}/${sitePath}`, {
+  const response = await fetchTjoy(`${TJOY_BASE}/${sitePath}`, {
     timeoutMs,
   });
   const html = await response.text();
@@ -463,7 +467,7 @@ async function fetchScheduleFragment({
     data: JSON.stringify({ date: selectedDate, theaterId }),
     _csrfToken: session.csrfToken,
   });
-  const response = await fetchWithTimeout(
+  const response = await fetchTjoy(
     `${TJOY_BASE}/theaterTop/scheduleGetHtmlApi`,
     {
       timeoutMs,
@@ -484,7 +488,7 @@ async function fetchScheduleFragment({
   return response.text();
 }
 
-async function fetchWithTimeout(
+async function fetchTjoy(
   url: string,
   {
     timeoutMs,
@@ -494,21 +498,12 @@ async function fetchWithTimeout(
     init?: RequestInit;
   },
 ): Promise<Response> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const response = await fetch(url, {
-      ...init,
-      cache: "no-store",
-      signal: controller.signal,
-    });
-
-    if (!response.ok) throw new Error(`T-Joy request failed with ${response.status}`);
-    return response;
-  } finally {
-    clearTimeout(timeout);
-  }
+  return fetchWithTimeout(url, {
+    timeoutMs,
+    init,
+    cache: "no-store",
+    errorMessage: (response) => `T-Joy request failed with ${response.status}`,
+  });
 }
 
 function responseCookie(response: Response): string {
@@ -524,24 +519,4 @@ function responseCookie(response: Response): string {
     .map((cookie) => cookie.split(";")[0]?.trim())
     .filter(Boolean)
     .join("; ");
-}
-
-function htmlText(value: string): string {
-  return decodeEntities(
-    value
-      .replace(/<br\s*\/?>/gi, " ")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/\s+/g, " ")
-      .trim(),
-  );
-}
-
-function decodeEntities(value: string): string {
-  return value
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&quot;/g, "\"")
-    .replace(/&#39;/g, "'")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">");
 }

@@ -25,6 +25,10 @@ import {
   toPlanningDay,
   upcomingPlanningDays,
 } from "./schedule-model";
+import {
+  fetchTextWithTimeout,
+  htmlText,
+} from "./source-adapter-support";
 
 const SMT_BASE = "https://www.smt-cinema.com";
 const SMT_SCHEDULE_BASE = `${SMT_BASE}/html/site/pc/schedule`;
@@ -59,7 +63,7 @@ const getCachedPlanningDays = unstable_cache(
     schedulePrefix: string,
     theaterCode: string,
   ): Promise<PlanningDay[]> => {
-    const html = await fetchText(
+    const html = await fetchSmtText(
       `${SMT_SCHEDULE_BASE}/${schedulePrefix}_${theaterCode}_schedule_daily_date_area.html`,
       6_000,
     );
@@ -102,7 +106,7 @@ const getCachedScheduleSnapshot = unstable_cache(
   ): Promise<Extract<ScheduleResult, { ok: true }>> => {
     const fetchedAt = new Date().toISOString();
     const compactDate = dateToCompactDate(selectedDate);
-    const html = await fetchText(
+    const html = await fetchSmtText(
       `${SMT_SCHEDULE_BASE}/${schedulePrefix}_${theaterCode}_${compactDate}_schedule_daily_movie_area.html`,
       8_000,
     );
@@ -328,42 +332,10 @@ function normalizeUrl(url: string | null): string | null {
   return new URL(url, SMT_BASE).toString();
 }
 
-function htmlText(value: string): string {
-  return decodeEntities(
-    value
-      .replace(/<br\s*\/?>/gi, " ")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/\s+/g, " ")
-      .trim(),
-  );
-}
-
-function decodeEntities(value: string): string {
-  return value
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&quot;/g, "\"")
-    .replace(/&#39;/g, "'")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">");
-}
-
-async function fetchText(url: string, timeoutMs: number): Promise<string> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const response = await fetch(url, {
-      cache: "no-store",
-      signal: controller.signal,
-    });
-
-    if (!response.ok) {
-      throw new Error(`SMT request failed with ${response.status}`);
-    }
-
-    return await response.text();
-  } finally {
-    clearTimeout(timeout);
-  }
+async function fetchSmtText(url: string, timeoutMs: number): Promise<string> {
+  return fetchTextWithTimeout(url, {
+    timeoutMs,
+    cache: "no-store",
+    errorMessage: (response) => `SMT request failed with ${response.status}`,
+  });
 }
