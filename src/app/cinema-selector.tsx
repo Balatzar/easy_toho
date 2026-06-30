@@ -2,13 +2,13 @@
 
 import "leaflet/dist/leaflet.css";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Map as LeafletMap, Marker as LeafletMarker } from "leaflet";
 import type { Cinema } from "@/lib/cinemas";
 import { plannerHref } from "@/lib/routes";
 import { CinemaMapLink } from "./cinema-map-link";
-import { PendingLink } from "./pending-link";
+import { PendingLink, usePendingNavigation } from "./pending-link";
 
 type SelectorView = "map" | "list";
 type LeafletModule = typeof import("leaflet");
@@ -115,8 +115,14 @@ function CinemaMap({
   const markersRef = useRef<Map<string, LeafletMarker>>(new Map());
   const selectedDateRef = useRef(selectedDate);
   const selectedCinemaSlugRef = useRef(selectedCinemaSlug);
+  const [pendingCinemaSlug, setPendingCinemaSlug] = useState<string | null>(
+    null,
+  );
   const router = useRouter();
   const routerRef = useRef(router);
+  const pendingNavigation = usePendingNavigation();
+  const pendingNavigationRef = useRef(pendingNavigation);
+  const mapPendingLinkId = useId();
   const cinemaSignature = cinemas
     .map(
       (cinema) =>
@@ -130,6 +136,10 @@ function CinemaMap({
   }, [router]);
 
   useEffect(() => {
+    pendingNavigationRef.current = pendingNavigation;
+  }, [pendingNavigation]);
+
+  useEffect(() => {
     cinemaSnapshotRef.current = cinemas;
   }, [cinemas]);
 
@@ -140,6 +150,44 @@ function CinemaMap({
   useEffect(() => {
     selectedCinemaSlugRef.current = selectedCinemaSlug;
   }, [selectedCinemaSlug]);
+
+  useEffect(() => {
+    if (!pendingCinemaSlug) return;
+
+    const timeout = window.setTimeout(() => {
+      setPendingCinemaSlug((current) =>
+        current === selectedCinemaSlug ? null : current,
+      );
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
+  }, [pendingCinemaSlug, selectedCinemaSlug]);
+
+  useEffect(() => {
+    if (
+      !pendingCinemaSlug ||
+      !pendingNavigation?.pendingLinkId ||
+      pendingNavigation.pendingLinkId === mapPendingLinkId
+    ) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setPendingCinemaSlug(null);
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
+  }, [mapPendingLinkId, pendingCinemaSlug, pendingNavigation?.pendingLinkId]);
+
+  useEffect(() => {
+    if (!pendingCinemaSlug) return;
+
+    const timeout = window.setTimeout(() => {
+      setPendingCinemaSlug(null);
+    }, 15_000);
+
+    return () => window.clearTimeout(timeout);
+  }, [pendingCinemaSlug]);
 
   useEffect(() => {
     let cancelled = false;
@@ -201,7 +249,11 @@ function CinemaMap({
             .addTo(map);
 
           marker.on("click", () => {
+            if (cinema.slug === selectedCinemaSlugRef.current) return;
             if (mapRef.current) rememberMapView(mapRef.current);
+
+            pendingNavigationRef.current?.setPendingLinkId(mapPendingLinkId);
+            setPendingCinemaSlug(cinema.slug);
 
             routerRef.current.push(
               plannerHref(cinema.slug, selectedDateRef.current),
@@ -237,30 +289,47 @@ function CinemaMap({
       leafletRef.current = null;
       markers.clear();
     };
-  }, [cinemaSignature, onMapError]);
+  }, [cinemaSignature, mapPendingLinkId, onMapError]);
 
   useEffect(() => {
     const L = leafletRef.current;
     if (!L) return;
 
     for (const [cinemaSlug, marker] of markersRef.current) {
-      const selected = cinemaSlug === selectedCinemaSlug;
-      marker.setIcon(pinIcon(L, cinemaSlug, selected));
+      const selected = cinemaSlug === (pendingCinemaSlug ?? selectedCinemaSlug);
+      const pending = cinemaSlug === pendingCinemaSlug;
+      marker.setIcon(pinIcon(L, cinemaSlug, selected, pending));
 
       const tooltipElement = marker.getTooltip()?.getElement();
       tooltipElement?.classList.toggle(
         "cinema-map-tooltip--selected",
         selected,
       );
+      tooltipElement?.classList.toggle("cinema-map-tooltip--pending", pending);
     }
-  }, [selectedCinemaSlug]);
+  }, [pendingCinemaSlug, selectedCinemaSlug]);
+
+  const pendingCinema = pendingCinemaSlug
+    ? cinemas.find((cinema) => cinema.slug === pendingCinemaSlug)
+    : undefined;
 
   return (
-    <div
-      ref={containerRef}
-      className="cinema-map h-[420px] overflow-hidden rounded-md border border-stone-200 bg-stone-100 sm:h-[480px] lg:h-[540px]"
-      aria-label="Tokyo Cinema map"
-    />
+    <div className="relative">
+      <div
+        ref={containerRef}
+        className="cinema-map h-[420px] overflow-hidden rounded-md border border-stone-200 bg-stone-100 sm:h-[480px] lg:h-[540px]"
+        aria-busy={pendingCinema ? "true" : undefined}
+        aria-label="Tokyo Cinema map"
+      />
+      {pendingCinema ? (
+        <div
+          className="pointer-events-none absolute top-3 right-3 z-[1000] max-w-[calc(100%-1.5rem)] rounded-md border border-stone-300 bg-white/95 px-3 py-2 text-sm font-semibold text-stone-800 shadow-sm"
+          role="status"
+        >
+          Loading {pendingCinema.name} showtimes...
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -277,13 +346,18 @@ function pinIcon(
   L: LeafletModule,
   cinemaSlug: string,
   selected: boolean,
+  pending = false,
 ) {
   const [offsetX, offsetY] = PIN_DISPLAY_OFFSETS[cinemaSlug] ?? [0, 0];
 
   return L.divIcon({
-    className: selected
-      ? "cinema-map-dot cinema-map-dot--selected"
-      : "cinema-map-dot",
+    className: [
+      "cinema-map-dot",
+      selected ? "cinema-map-dot--selected" : "",
+      pending ? "cinema-map-dot--pending" : "",
+    ]
+      .filter(Boolean)
+      .join(" "),
     iconAnchor: [8 - offsetX, 8 - offsetY],
     iconSize: [16, 16],
     tooltipAnchor: [offsetX, offsetY],

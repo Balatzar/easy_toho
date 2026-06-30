@@ -14,7 +14,7 @@ import {
   type ReactNode,
 } from "react";
 
-type PendingNavigationContextValue = {
+export type PendingNavigationContextValue = {
   currentHref: string | null;
   pendingLinkId: string | null;
   setPendingLinkId: (linkId: string | null) => void;
@@ -134,6 +134,10 @@ export function PendingLink({
       </span>
     </Link>
   );
+}
+
+export function usePendingNavigation(): PendingNavigationContextValue | null {
+  return useContext(PendingNavigationContext);
 }
 
 function PendingNavigationClearOnUrlChange({
