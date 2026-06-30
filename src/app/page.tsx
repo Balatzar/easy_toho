@@ -47,7 +47,7 @@ export default async function Home({
         <header className="flex flex-col gap-4 border-b border-stone-200 pb-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-red-700">
-              Easy Toho
+              Tokyo Movie Times
             </p>
             <h1 className="mt-1 text-2xl font-semibold tracking-normal text-stone-950 sm:text-3xl">
               Tokyo cinema showtimes
