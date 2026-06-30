@@ -317,7 +317,7 @@ function CinemaList({
             ].join(" ")}
           >
             <PendingLink
-              href={plannerHref(cinema.slug, selectedDate)}
+              href={`${plannerHref(cinema.slug, selectedDate)}#movies`}
               className="block min-w-0 rounded-l-md py-2 pl-3 text-left"
             >
               <span className="block text-sm font-semibold">{cinema.name}</span>

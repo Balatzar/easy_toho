@@ -76,7 +76,7 @@ export default async function Home({
             />
           </aside>
 
-          <section className="min-w-0">
+          <section id="movies" className="min-w-0 scroll-mt-4">
             <Suspense
               key={scheduleKey}
               fallback={
