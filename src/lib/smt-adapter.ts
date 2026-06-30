@@ -23,6 +23,7 @@ import {
   sortShowtimes,
   toHalfWidth,
   toPlanningDay,
+  upcomingPlanningDays,
 } from "./schedule-model";
 
 const SMT_BASE = "https://www.smt-cinema.com";
@@ -42,9 +43,8 @@ export async function getPlanningDays(
   config: SmtCinemaConfig,
 ): Promise<PlanningDay[]> {
   try {
-    const days = await getCachedPlanningDays(
-      config.schedulePrefix,
-      config.theaterCode,
+    const days = upcomingPlanningDays(
+      await getCachedPlanningDays(config.schedulePrefix, config.theaterCode),
     );
 
     if (days.length === 0) throw new Error("SMT returned no planning days.");
@@ -64,7 +64,7 @@ const getCachedPlanningDays = unstable_cache(
       6_000,
     );
 
-    return parsePlanningDays(html).slice(0, 7);
+    return parsePlanningDays(html);
   },
   ["smt-planning-days-v1"],
   { revalidate: SOURCE_CACHE_SECONDS },

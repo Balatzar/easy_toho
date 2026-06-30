@@ -14,6 +14,7 @@ import {
   firstSelectableDate,
   getPlanningDays,
   getSchedule,
+  isTodayTokyo,
   normalizeSelectedDate,
 } from "@/lib/schedules";
 import { imaxHref, moviesHref, movieHref } from "@/lib/routes";
@@ -115,9 +116,9 @@ function DateTabs({
       className="flex gap-2 overflow-x-auto border-b border-stone-200 pb-3"
       aria-label="Planning days"
     >
-      {days.map((day, index) => {
+      {days.map((day) => {
         const active = day.date === selectedDate;
-        const label = index === 0 ? "Today" : day.weekday;
+        const label = isTodayTokyo(day.date) ? "Today" : day.weekday;
         const href = plannerHref(
           selectedCinemaSlug,
           day.selectable ? day.date : fallbackDate,
@@ -443,7 +444,11 @@ function ShowtimeGroup({
               <span className="text-base font-semibold text-stone-950">
                 {showtime.start}
               </span>
-              <span className="text-sm text-stone-500">to {showtime.end}</span>
+              {showtime.end ? (
+                <span className="text-sm text-stone-500">
+                  to {showtime.end}
+                </span>
+              ) : null}
               <span className="text-sm text-stone-600">{showtime.screen}</span>
             </div>
             <div className="flex flex-wrap gap-1.5">

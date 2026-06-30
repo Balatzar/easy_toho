@@ -32,6 +32,13 @@ Keep provider-specific details inside the adapter:
 
 Do not add source-specific fields to the universal model unless the UI or aggregators can use them for every source.
 
+## Ticketing links
+
+Do not add ticket purchase or booking links to source adapters or the universal
+schedule model. Easy Toho is for understanding Tokyo Cinema Screening options;
+ticketing target sites are Japanese-language, source-specific purchase flows and
+are intentionally out of scope.
+
 ## Availability
 
 Map raw source statuses to `ShowtimeAvailability` for app logic:
@@ -43,6 +50,13 @@ Map raw source statuses to `ShowtimeAvailability` for app logic:
 - `unknown`
 
 Also preserve the reader-facing source label in `availabilityLabel`, for example `A · Plenty` or `◎余裕あり`.
+
+## Showtime end times
+
+Do not invent fake end times. If a Schedule Source publishes an explicit end
+time, use it. If it publishes a runtime, adapters may compute an end time from
+the Published Showtime start. If neither is available, return a missing end time
+and let the UI omit the end-time label.
 
 ## Movie identity
 

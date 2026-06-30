@@ -20,6 +20,7 @@ import {
   toHalfWidth,
   toPlanningDay,
   unique,
+  upcomingPlanningDays,
 } from "./schedule-model";
 
 const TJOY_BASE = "https://tjoy.jp";
@@ -53,7 +54,9 @@ export async function getPlanningDays(
   config: TjoyCinemaConfig,
 ): Promise<PlanningDay[]> {
   try {
-    const days = await getCachedPlanningDays(config.sitePath);
+    const days = upcomingPlanningDays(
+      await getCachedPlanningDays(config.sitePath),
+    );
 
     if (days.length === 0) throw new Error("T-Joy returned no planning days.");
     return days;
@@ -65,7 +68,7 @@ export async function getPlanningDays(
 const getCachedPlanningDays = unstable_cache(
   async (sitePath: string): Promise<PlanningDay[]> => {
     const session = await fetchPageSession(sitePath, 8_000);
-    return parsePlanningDays(session.html).slice(0, 7);
+    return parsePlanningDays(session.html);
   },
   ["tjoy-planning-days-v1"],
   { revalidate: SOURCE_CACHE_SECONDS },

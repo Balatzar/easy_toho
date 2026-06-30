@@ -199,7 +199,11 @@ function ShowtimeGroup({
               <span className="text-base font-semibold text-stone-950">
                 {showtime.start}
               </span>
-              <span className="text-sm text-stone-500">to {showtime.end}</span>
+              {showtime.end ? (
+                <span className="text-sm text-stone-500">
+                  to {showtime.end}
+                </span>
+              ) : null}
               <span className="text-sm text-stone-600">{showtime.screen}</span>
             </div>
             <div className="flex flex-wrap gap-1.5">

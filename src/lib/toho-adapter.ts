@@ -10,6 +10,7 @@ import {
   movieIdentityId,
   sortMovieCards,
   sortShowtimes,
+  upcomingPlanningDays,
 } from "./schedule-model";
 import {
   type MovieCard as TohoMovieCard,
@@ -24,7 +25,7 @@ export async function getPlanningDays(
   config: TohoCinemaConfig,
 ): Promise<PlanningDay[]> {
   const days = await getTohoPlanningDays(config.scheduleCode);
-  return days.map(toPlanningDay);
+  return upcomingPlanningDays(days.map(toPlanningDay));
 }
 
 export async function getSchedule(

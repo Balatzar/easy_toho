@@ -2,7 +2,7 @@ export const SOURCE_CACHE_SECONDS = 3_600;
 
 const TOKYO_TIME_ZONE = "Asia/Tokyo";
 
-export type ScheduleSourceId = "toho" | "smt" | "tjoy";
+export type ScheduleSourceId = "toho" | "smt" | "tjoy" | "eiga";
 
 export type ScheduleSource = {
   id: ScheduleSourceId;
@@ -27,7 +27,7 @@ export type LanguageRank = "english" | "japanese";
 
 export type Showtime = {
   start: string;
-  end: string;
+  end: string | null;
   screen: string;
   formats: string[];
   language: LanguageRank;
@@ -64,7 +64,12 @@ export type ScheduleResult =
 type LoadedScheduleResult = Extract<ScheduleResult, { ok: true }>;
 
 export function firstSelectableDate(days: PlanningDay[]): string {
-  return days.find((day) => day.selectable)?.date ?? days[0]?.date ?? todayTokyo();
+  const today = todayTokyo();
+  return (
+    days.find((day) => day.selectable && day.date >= today)?.date ??
+    days.find((day) => day.date >= today)?.date ??
+    today
+  );
 }
 
 export function normalizeSelectedDate(
@@ -75,6 +80,7 @@ export function normalizeSelectedDate(
 
   if (
     normalized &&
+    normalized >= todayTokyo() &&
     days.some((day) => day.date === normalized && day.selectable)
   ) {
     return normalized;
@@ -97,6 +103,15 @@ export function fallbackPlanningDays(): PlanningDay[] {
 
     return toPlanningDay(formatted, true);
   });
+}
+
+export function upcomingPlanningDays(days: PlanningDay[]): PlanningDay[] {
+  const today = todayTokyo();
+  return days.filter((day) => day.date >= today).slice(0, 7);
+}
+
+export function isTodayTokyo(date: string): boolean {
+  return date === todayTokyo();
 }
 
 export function toPlanningDay(date: string, selectable: boolean): PlanningDay {
@@ -240,6 +255,7 @@ export function extractFormats(
   if (/IMAX\s*LASER|IMAXLASER/.test(normalized)) formats.push("IMAX Laser");
   else if (/IMAX/.test(normalized)) formats.push("IMAX");
   if (/MX4D/.test(normalized)) formats.push("MX4D");
+  if (/\b4DX\b|ULTRA\s*4DX|\b4D\b/.test(normalized)) formats.push("4DX");
   if (/\bTCX\b/.test(normalized)) formats.push("TCX");
   if (/PREMIUM\s*THEATER/.test(normalized)) formats.push("Premium Theater");
   if (/\b3D\b/.test(normalized)) formats.push("3D");
@@ -331,7 +347,7 @@ function cleanEnglishLabel(label: string): string {
   const base = toHalfWidth(label)
     .replace(/^\s*(SUB|DUB)\s*[/:]\s*/i, "")
     .replace(/\s*\/\s*(SUB|DUB).*$/i, "")
-    .replace(/\b(SCREEN\s*X|SCREENX|DOLBY[-\s]?ATMOS|ATMOS|IMAXLASER|IMAX\s*LASER|IMAX|MX4D|TCX|4DX|3D|BABY CLUB THEATER)\b/gi, "")
+    .replace(/\b(SCREEN\s*X|SCREENX|DOLBY[-\s]?ATMOS|ATMOS|IMAXLASER|IMAX\s*LASER|IMAX|MX4D|TCX|4DX|4D|3D|BABY CLUB THEATER)\b/gi, "")
     .replace(/\b([A-Za-z]{2,})(\d+)\b/g, "$1 $2")
     .replace(/\s{2,}/g, " ")
     .trim();
@@ -464,6 +480,7 @@ function parseDateParts(date: string): {
 function slugify(value: string): string {
   return toHalfWidth(value)
     .toLowerCase()
+    .replace(/['`\u2018\u2019]/g, "")
     .replace(/&/g, " and ")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");

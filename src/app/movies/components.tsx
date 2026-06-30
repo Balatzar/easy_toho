@@ -5,6 +5,7 @@ import {
   type PlanningDay,
   type ShowtimeAvailability,
   firstSelectableDate,
+  isTodayTokyo,
 } from "@/lib/schedules";
 import { CinemaMapLink } from "../cinema-map-link";
 import { PendingLink } from "../pending-link";
@@ -25,9 +26,9 @@ export function DateTabs({
       className="flex gap-2 overflow-x-auto border-b border-stone-200 pb-3"
       aria-label="Planning days"
     >
-      {days.map((day, index) => {
+      {days.map((day) => {
         const active = day.date === selectedDate;
-        const label = index === 0 ? "Today" : day.weekday;
+        const label = isTodayTokyo(day.date) ? "Today" : day.weekday;
         const href = hrefForDate(day.selectable ? day.date : fallbackDate);
 
         if (!day.selectable) {
