@@ -23,14 +23,16 @@ import {
   PartialScheduleWarning,
   SeatStatus,
 } from "../movies/components";
+import { BrandHeader } from "../brand";
 import { CinemaMapLink } from "../cinema-map-link";
+import { createPageMetadata } from "../metadata-utils";
 import { PendingLink } from "../pending-link";
 import { SectionNav } from "../section-nav";
 
-export const metadata: Metadata = {
-  title: "IMAX | Tokyo Movie Times",
+export const metadata: Metadata = createPageMetadata({
+  title: "IMAX",
   description: "IMAX cinema screenings across Tokyo.",
-};
+});
 
 type SearchParams = Promise<{
   date?: string | string[];
@@ -52,14 +54,7 @@ export default async function ImaxPage({
     <main className="min-h-screen bg-[#f6f6f3] text-stone-950">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
         <header className="flex flex-col gap-4 border-b border-stone-200 pb-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-red-700">
-              Tokyo Movie Times
-            </p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-normal text-stone-950 sm:text-3xl">
-              IMAX movies
-            </h1>
-          </div>
+          <BrandHeader title="IMAX movies" />
           <SectionNav
             active="imax"
             cinemasHref={plannerHref(DEFAULT_CINEMA_SLUG, selectedDate)}

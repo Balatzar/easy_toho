@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Tokyo Movie Times mark</title>
+  <desc id="desc">A dark rounded square with a red Tokyo sun, a cinema route line, two station dots, and a play symbol.</desc>
+  <rect x="24" y="24" width="464" height="464" rx="112" fill="#1c1917"/>
+  <path d="M80 418H432M80 94H238M334 94H432M80 160H178M80 222H132M380 286H432M330 350H432" stroke="#44403c" stroke-width="12" stroke-linecap="round" opacity=".38"/>
+  <circle cx="368" cy="144" r="72" fill="#dc2626"/>
+  <path d="M104 338C176 226 266 158 416 110" fill="none" stroke="#f6f6f3" stroke-width="48" stroke-linecap="round"/>
+  <path d="M108 338C180 229 268 164 412 116" fill="none" stroke="#d6d3d1" stroke-width="18" stroke-linecap="round"/>
+  <circle cx="170" cy="272" r="34" fill="#991b1b" stroke="#f6f6f3" stroke-width="14"/>
+  <circle cx="274" cy="196" r="34" fill="#991b1b" stroke="#f6f6f3" stroke-width="14"/>
+  <path d="M204 290L316 354L204 418Z" fill="#f6f6f3"/>
+</svg>

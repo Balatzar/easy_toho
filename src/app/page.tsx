@@ -18,6 +18,7 @@ import {
   normalizeSelectedDate,
 } from "@/lib/schedules";
 import { imaxHref, moviesHref, movieHref } from "@/lib/routes";
+import { BrandHeader } from "./brand";
 import { CinemaMapLink } from "./cinema-map-link";
 import { CinemaSelector } from "./cinema-selector";
 import { PendingLink } from "./pending-link";
@@ -45,14 +46,7 @@ export default async function Home({
     <main className="min-h-screen bg-[#f6f6f3] text-stone-950">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
         <header className="flex flex-col gap-4 border-b border-stone-200 pb-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-red-700">
-              Tokyo Movie Times
-            </p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-normal text-stone-950 sm:text-3xl">
-              Tokyo cinema showtimes
-            </h1>
-          </div>
+          <BrandHeader title="Tokyo cinema showtimes" />
           <SectionNav
             active="cinemas"
             cinemasHref={plannerHref(selectedCinema.slug, selectedDate)}
