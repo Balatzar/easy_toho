@@ -83,6 +83,19 @@ type ImaxMovieAccumulator = Omit<ImaxAvailableMovie, "cinemas"> & {
   rawEnglishLabels: string[];
 };
 
+type MergeableMovieAccumulator = {
+  id: string;
+  title: string;
+  artworkUrl: string | null;
+  runtimeMinutes: number | null;
+  rawEnglishLabels: string[];
+};
+
+type LanguageShowtimeBuckets = {
+  englishShowtimes: Showtime[];
+  otherShowtimes: Showtime[];
+};
+
 export async function getEnglishWatchableMovies(
   selectedDate: string,
 ): Promise<EnglishWatchableMoviesResult> {
@@ -98,27 +111,24 @@ export async function getEnglishWatchableMovies(
       if (englishShowtimes.length === 0) continue;
 
       const earliestEnglishMinutes = earliestMinutes(englishShowtimes);
-      const existing = findMatchingAccumulator(movies.values(), card);
-
-      if (!existing) {
-        movies.set(card.id, {
+      upsertMovieAccumulator(
+        movies,
+        card,
+        () => ({
           id: card.id,
           title: card.title,
           artworkUrl: card.artworkUrl,
           earliestEnglishMinutes,
           runtimeMinutes: card.runtimeMinutes,
           rawEnglishLabels: card.rawEnglishLabels,
-        });
-        continue;
-      }
-
-      existing.earliestEnglishMinutes = Math.min(
-        existing.earliestEnglishMinutes,
-        earliestEnglishMinutes,
+        }),
+        (existing) => {
+          existing.earliestEnglishMinutes = Math.min(
+            existing.earliestEnglishMinutes,
+            earliestEnglishMinutes,
+          );
+        },
       );
-      existing.title = shortestLabel(existing.title, card.title);
-      existing.artworkUrl ??= card.artworkUrl;
-      existing.runtimeMinutes ??= card.runtimeMinutes;
     }
   }
 
@@ -152,12 +162,8 @@ export async function getImaxAvailableMovies(
       const imaxShowtimes = card.showtimes.filter(isImaxScreening);
       if (imaxShowtimes.length === 0) continue;
 
-      const englishShowtimes = imaxShowtimes.filter(
-        (showtime) => showtime.language === "english",
-      );
-      const otherShowtimes = imaxShowtimes.filter(
-        (showtime) => showtime.language !== "english",
-      );
+      const { englishShowtimes, otherShowtimes } =
+        splitEnglishShowtimes(imaxShowtimes);
       const projectionCinema = {
         cinema: schedule.cinema,
         card,
@@ -165,10 +171,10 @@ export async function getImaxAvailableMovies(
         otherShowtimes,
       };
       const earliestImaxMinutes = earliestMinutes(imaxShowtimes);
-      const existing = findMatchingAccumulator(movies.values(), card);
-
-      if (!existing) {
-        movies.set(card.id, {
+      upsertMovieAccumulator(
+        movies,
+        card,
+        () => ({
           id: card.id,
           title: card.title,
           artworkUrl: card.artworkUrl,
@@ -177,19 +183,16 @@ export async function getImaxAvailableMovies(
           cinemas: [projectionCinema],
           earliestImaxMinutes,
           rawEnglishLabels: card.rawEnglishLabels,
-        });
-        continue;
-      }
-
-      existing.earliestImaxMinutes = Math.min(
-        existing.earliestImaxMinutes,
-        earliestImaxMinutes,
+        }),
+        (existing) => {
+          existing.earliestImaxMinutes = Math.min(
+            existing.earliestImaxMinutes,
+            earliestImaxMinutes,
+          );
+          existing.rating ??= card.rating;
+          existing.cinemas.push(projectionCinema);
+        },
       );
-      existing.title = shortestLabel(existing.title, card.title);
-      existing.artworkUrl ??= card.artworkUrl;
-      existing.runtimeMinutes ??= card.runtimeMinutes;
-      existing.rating ??= card.rating;
-      existing.cinemas.push(projectionCinema);
     }
   }
 
@@ -240,12 +243,8 @@ export async function getMovieProjectionList(
     const { card } = projection;
     if (!sameMovieCard(seedCard, card)) continue;
 
-    const englishShowtimes = card.showtimes.filter(
-      (showtime) => showtime.language === "english",
-    );
-    const otherShowtimes = card.showtimes.filter(
-      (showtime) => showtime.language !== "english",
-    );
+    const { englishShowtimes, otherShowtimes } =
+      splitEnglishShowtimes(card.showtimes);
 
     cinemas.push({
       cinema: projection.cinema,
@@ -343,6 +342,45 @@ function compareImaxMovieCinemas(
 
 function shortestLabel(current: string, next: string): string {
   return next.length < current.length ? next : current;
+}
+
+function upsertMovieAccumulator<T extends MergeableMovieAccumulator>(
+  movies: Map<string, T>,
+  card: MovieCard,
+  create: () => T,
+  merge: (existing: T) => void,
+): void {
+  const existing = findMatchingAccumulator(movies.values(), card);
+
+  if (!existing) {
+    movies.set(card.id, create());
+    return;
+  }
+
+  mergeMovieMetadata(existing, card);
+  merge(existing);
+}
+
+function mergeMovieMetadata(
+  movie: MergeableMovieAccumulator,
+  card: MovieCard,
+): void {
+  movie.title = shortestLabel(movie.title, card.title);
+  movie.artworkUrl ??= card.artworkUrl;
+  movie.runtimeMinutes ??= card.runtimeMinutes;
+}
+
+function splitEnglishShowtimes(
+  showtimes: Showtime[],
+): LanguageShowtimeBuckets {
+  const englishShowtimes = showtimes.filter(
+    (showtime) => showtime.language === "english",
+  );
+  const otherShowtimes = showtimes.filter(
+    (showtime) => showtime.language !== "english",
+  );
+
+  return { englishShowtimes, otherShowtimes };
 }
 
 function findMatchingAccumulator<
