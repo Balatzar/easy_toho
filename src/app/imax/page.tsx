@@ -10,18 +10,13 @@ import {
   getImaxAvailableMovies,
 } from "@/lib/schedule-aggregate";
 import { imaxHref, movieHref, moviesHref, plannerHref } from "@/lib/routes";
-import {
-  type Showtime,
-  getPlanningDays,
-  normalizeSelectedDate,
-} from "@/lib/schedules";
+import { getPlanningDays, normalizeSelectedDate } from "@/lib/schedules";
 import {
   DateTabs,
-  LanguageBadge,
   MetaBadge,
   MoviePoster,
   PartialScheduleWarning,
-  SeatStatus,
+  ShowtimeRows,
 } from "../movies/components";
 import { BrandHeader } from "../brand";
 import { CinemaMapLink } from "../cinema-map-link";
@@ -51,16 +46,21 @@ export default async function ImaxPage({
   const selectedDay = days.find((day) => day.date === selectedDate);
 
   return (
-    <main className="min-h-screen bg-[#f6f6f3] text-stone-950">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
-        <header className="flex flex-col gap-4 border-b border-stone-200 pb-4 lg:flex-row lg:items-end lg:justify-between">
+    <main className="min-h-screen bg-[#fbfaf7] text-stone-950">
+      <div className="mx-auto flex w-full max-w-[1480px] flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
+        <header className="flex flex-col gap-4 rounded-md border border-stone-200 bg-white px-4 py-3 shadow-sm lg:flex-row lg:items-center lg:justify-between">
           <BrandHeader title="IMAX movies" />
-          <SectionNav
-            active="imax"
-            cinemasHref={plannerHref(DEFAULT_CINEMA_SLUG, selectedDate)}
-            moviesHref={moviesHref(selectedDate)}
-            imaxHref={imaxHref(selectedDate)}
-          />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <p className="text-sm font-medium text-stone-500">
+              Showtimes are in JST
+            </p>
+            <SectionNav
+              active="imax"
+              cinemasHref={plannerHref(DEFAULT_CINEMA_SLUG, selectedDate)}
+              moviesHref={moviesHref(selectedDate)}
+              imaxHref={imaxHref(selectedDate)}
+            />
+          </div>
         </header>
 
         <DateTabs
@@ -70,13 +70,16 @@ export default async function ImaxPage({
         />
 
         <section className="min-w-0">
-          <div className="mb-4 flex flex-col gap-2 border-b border-stone-200 pb-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="mb-4 rounded-md border border-stone-200 bg-white p-4 shadow-sm">
             <div>
-              <p className="text-sm font-semibold text-stone-950">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-red-700">
+                Premium-format search
+              </p>
+              <h2 className="mt-1 text-2xl font-semibold leading-tight text-stone-950">
                 {selectedDay
                   ? `${selectedDay.weekday}, ${selectedDay.label}`
                   : selectedDate}
-              </p>
+              </h2>
               <p className="text-sm text-stone-600">
                 {IMAX_CAPABLE_CINEMAS.length} IMAX Tokyo Cinemas
               </p>
@@ -103,7 +106,7 @@ async function ImaxMovieListSection({
     return (
       <div className="grid gap-3">
         <PartialScheduleWarning failedCinemas={result.failedCinemas} />
-        <div className="rounded-lg border border-stone-200 bg-white p-8 text-center shadow-sm">
+        <div className="rounded-md border border-stone-200 bg-white p-8 text-center shadow-sm">
           <h2 className="text-lg font-semibold text-stone-950">
             No IMAX movies
           </h2>
@@ -139,15 +142,15 @@ function ImaxMovieCard({
   const detailHref = movieHref(movie.id, selectedDate);
 
   return (
-    <article className="grid gap-4 rounded-lg border border-stone-200 bg-white p-3 shadow-sm sm:grid-cols-[112px_minmax(0,1fr)]">
+    <article className="grid grid-cols-[96px_minmax(0,1fr)] overflow-hidden rounded-md border border-stone-200 bg-white shadow-sm transition-colors hover:border-stone-400 sm:grid-cols-[112px_minmax(0,1fr)] lg:grid-cols-[128px_minmax(240px,0.8fr)_minmax(420px,1.5fr)]">
       <PendingLink
         href={detailHref}
-        className="block rounded-md transition-opacity hover:opacity-90"
+        className="block p-3 transition-opacity hover:opacity-90"
       >
         <MoviePoster title={movie.title} artworkUrl={movie.artworkUrl} />
       </PendingLink>
 
-      <div className="min-w-0">
+      <div className="min-w-0 p-3 sm:pl-0 lg:border-r lg:border-stone-100">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -155,7 +158,7 @@ function ImaxMovieCard({
                 href={detailHref}
                 className="min-w-0 hover:underline"
               >
-                <h2 className="break-words text-xl font-semibold tracking-normal text-stone-950">
+                <h2 className="break-words text-xl font-semibold leading-tight tracking-normal text-stone-950">
                   {movie.title}
                 </h2>
               </PendingLink>
@@ -168,8 +171,10 @@ function ImaxMovieCard({
             </p>
           </div>
         </div>
+      </div>
 
-        <div className="mt-4 divide-y divide-stone-100 border-t border-stone-100">
+      <div className="col-span-2 border-t border-stone-100 p-3 lg:col-span-1 lg:border-t-0">
+        <div className="divide-y divide-stone-100">
           {movie.cinemas.map((projectionCinema) => (
             <div key={projectionCinema.cinema.slug} className="py-3 first:pt-0">
               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
@@ -186,13 +191,13 @@ function ImaxMovieCard({
               </div>
 
               {projectionCinema.englishShowtimes.length > 0 ? (
-                <ShowtimeGroup
+                <ShowtimeRows
                   label="English-watchable"
                   showtimes={projectionCinema.englishShowtimes}
                 />
               ) : null}
               {projectionCinema.otherShowtimes.length > 0 ? (
-                <ShowtimeGroup
+                <ShowtimeRows
                   label="Japanese"
                   showtimes={projectionCinema.otherShowtimes}
                 />
@@ -205,71 +210,27 @@ function ImaxMovieCard({
   );
 }
 
-function ShowtimeGroup({
-  label,
-  showtimes,
-}: {
-  label: string;
-  showtimes: Showtime[];
-}) {
-  return (
-    <div className="mt-3">
-      <h4 className="text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">
-        {label}
-      </h4>
-      <div className="mt-2 grid gap-2">
-        {showtimes.map((showtime, index) => (
-          <div
-            key={`${showtime.start}-${showtime.end}-${showtime.screen}-${index}`}
-            className="flex flex-col gap-2 rounded-md border border-stone-200 bg-stone-50 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-base font-semibold text-stone-950">
-                {showtime.start}
-              </span>
-              {showtime.end ? (
-                <span className="text-sm text-stone-500">
-                  to {showtime.end}
-                </span>
-              ) : null}
-              <span className="text-sm text-stone-600">{showtime.screen}</span>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              <LanguageBadge language={showtime.language} compact />
-              {showtime.formats.map((format, formatIndex) => (
-                <MetaBadge key={`${format}-${formatIndex}`}>{format}</MetaBadge>
-              ))}
-              {showtime.eventLabel ? (
-                <MetaBadge>{showtime.eventLabel}</MetaBadge>
-              ) : null}
-              <SeatStatus status={showtime.availability}>
-                {showtime.availabilityLabel}
-              </SeatStatus>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function ImaxMovieListLoadingState() {
   return (
     <div className="grid gap-3" aria-busy="true" aria-live="polite">
       {Array.from({ length: 4 }, (_, index) => (
         <article
           key={index}
-          className="grid gap-4 rounded-lg border border-stone-200 bg-white p-3 shadow-sm sm:grid-cols-[112px_minmax(0,1fr)]"
+          className="grid animate-pulse grid-cols-[96px_minmax(0,1fr)] overflow-hidden rounded-md border border-stone-200 bg-white shadow-sm sm:grid-cols-[112px_minmax(0,1fr)] lg:grid-cols-[128px_minmax(240px,0.8fr)_minmax(420px,1.5fr)]"
         >
-          <div className="aspect-[2/3] animate-pulse rounded-md bg-stone-200" />
-          <div className="min-w-0">
-            <div className="h-6 w-64 max-w-full animate-pulse rounded bg-stone-200" />
-            <div className="mt-2 h-4 w-40 animate-pulse rounded bg-stone-100" />
-            <div className="mt-5 grid gap-2">
+          <div className="p-3">
+            <div className="aspect-[2/3] rounded-md bg-stone-200" />
+          </div>
+          <div className="min-w-0 p-3 sm:pl-0 lg:border-r lg:border-stone-100">
+            <div className="h-6 w-64 max-w-full rounded bg-stone-200" />
+            <div className="mt-2 h-4 w-40 rounded bg-stone-100" />
+          </div>
+          <div className="col-span-2 border-t border-stone-100 p-3 lg:col-span-1 lg:border-t-0">
+            <div className="grid gap-2">
               {Array.from({ length: 3 }, (_, rowIndex) => (
                 <div
                   key={rowIndex}
-                  className="h-11 animate-pulse rounded-md bg-stone-100"
+                  className="h-11 rounded-md bg-stone-100"
                 />
               ))}
             </div>

@@ -1,6 +1,6 @@
-# Easy Toho
+# Tokyo Movie Times
 
-Easy Toho helps English-speaking moviegoers understand cinema screening options in Tokyo without navigating Japanese cinema websites.
+Tokyo Movie Times helps English-speaking moviegoers understand cinema screening options in Tokyo without navigating Japanese cinema websites.
 
 ## Language
 
@@ -49,7 +49,7 @@ A film that has at least one Cinema Screening.
 _Avoid_: Title
 
 **Movie Identity**:
-The Easy Toho concept used to merge source-local movie records when different Schedule Sources appear to describe the same Movie. Screening variants such as subtitled, dubbed, premium-format, or special-event rows belong to one Movie Identity when the base film can be identified confidently.
+The Tokyo Movie Times concept used to merge source-local movie records when different Schedule Sources appear to describe the same Movie. Screening variants such as subtitled, dubbed, premium-format, or special-event rows belong to one Movie Identity when the base film can be identified confidently.
 _Avoid_: Source movie code, canonical database ID
 
 **TOHO Movie Group**:
@@ -109,7 +109,7 @@ A cross-Cinema schedule result that includes successfully fetched Cinema schedul
 _Avoid_: Failed search, unreliable result
 
 **Showtime Availability**:
-The sales state for a Published Showtime, such as available, limited, sold out, not selling, or unknown. Easy Toho can compare it through source-neutral categories, but the reader-facing label should preserve the Schedule Source's own availability wording or marker for that Cinema.
+The sales state for a Published Showtime, such as available, limited, sold out, not selling, or unknown. Tokyo Movie Times can compare it through source-neutral categories, but the reader-facing label should preserve the Schedule Source's own availability wording or marker for that Cinema.
 _Avoid_: Seat count, TOHO seat status
 
 **Language Presentation**:

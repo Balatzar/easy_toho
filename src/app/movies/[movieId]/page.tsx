@@ -5,17 +5,14 @@ import { getMovieProjectionList } from "@/lib/schedule-aggregate";
 import { imaxHref, movieHref, moviesHref, plannerHref } from "@/lib/routes";
 import {
   type PlanningDay,
-  type Showtime,
   getPlanningDays,
   normalizeSelectedDate,
 } from "@/lib/schedules";
 import {
   DateTabs,
-  LanguageBadge,
-  MetaBadge,
   MoviePoster,
   PartialScheduleWarning,
-  SeatStatus,
+  ShowtimeRows,
 } from "../components";
 import { BrandHeader } from "../../brand";
 import { CinemaMapLink } from "../../cinema-map-link";
@@ -49,16 +46,21 @@ export default async function MoviePage({
   const selectedDay = days.find((day) => day.date === selectedDate);
 
   return (
-    <main className="min-h-screen bg-[#f6f6f3] text-stone-950">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-4 sm:px-6 lg:px-8">
-        <header className="flex flex-col gap-4 border-b border-stone-200 pb-4 lg:flex-row lg:items-end lg:justify-between">
+    <main className="min-h-screen bg-[#fbfaf7] text-stone-950">
+      <div className="mx-auto flex w-full max-w-[1480px] flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
+        <header className="flex flex-col gap-4 rounded-md border border-stone-200 bg-white px-4 py-3 shadow-sm lg:flex-row lg:items-center lg:justify-between">
           <BrandHeader title="Movie projections" />
-          <SectionNav
-            active="movies"
-            cinemasHref={plannerHref(DEFAULT_CINEMA_SLUG, selectedDate)}
-            moviesHref={moviesHref(selectedDate)}
-            imaxHref={imaxHref(selectedDate)}
-          />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <p className="text-sm font-medium text-stone-500">
+              Showtimes are in JST
+            </p>
+            <SectionNav
+              active="movies"
+              cinemasHref={plannerHref(DEFAULT_CINEMA_SLUG, selectedDate)}
+              moviesHref={moviesHref(selectedDate)}
+              imaxHref={imaxHref(selectedDate)}
+            />
+          </div>
         </header>
 
         <DateTabs
@@ -102,7 +104,7 @@ async function MovieProjectionSection({
     return (
       <section className="grid gap-3">
         <PartialScheduleWarning failedCinemas={result.failedCinemas} />
-        <div className="rounded-lg border border-stone-200 bg-white p-8 text-center shadow-sm">
+        <div className="rounded-md border border-stone-200 bg-white p-8 text-center shadow-sm">
           <h2 className="text-lg font-semibold text-stone-950">
             No projections found
           </h2>
@@ -118,9 +120,15 @@ async function MovieProjectionSection({
     <section className="grid gap-4">
       <PartialScheduleWarning failedCinemas={result.failedCinemas} />
 
-      <div className="grid gap-4 border-b border-stone-200 pb-4 sm:grid-cols-[144px_minmax(0,1fr)]">
-        <MoviePoster title={result.movie.title} artworkUrl={result.movie.artworkUrl} />
+      <div className="grid gap-4 rounded-md border border-stone-200 bg-white p-4 shadow-sm sm:grid-cols-[144px_minmax(0,1fr)]">
+        <MoviePoster
+          title={result.movie.title}
+          artworkUrl={result.movie.artworkUrl}
+        />
         <div className="min-w-0 self-end">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-red-700">
+            Movie projection list
+          </p>
           <h2 className="break-words text-3xl font-semibold tracking-normal text-stone-950">
             {result.movie.title}
           </h2>
@@ -136,7 +144,7 @@ async function MovieProjectionSection({
         {result.cinemas.map((projectionCinema) => (
           <article
             key={projectionCinema.cinema.slug}
-            className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm"
+            className="rounded-md border border-stone-200 bg-white p-4 shadow-sm"
           >
             <div className="flex flex-col gap-1 border-b border-stone-100 pb-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
@@ -154,13 +162,13 @@ async function MovieProjectionSection({
             </div>
 
             {projectionCinema.englishShowtimes.length > 0 ? (
-              <ShowtimeGroup
+              <ShowtimeRows
                 label="English-watchable"
                 showtimes={projectionCinema.englishShowtimes}
               />
             ) : null}
             {projectionCinema.otherShowtimes.length > 0 ? (
-              <ShowtimeGroup
+              <ShowtimeRows
                 label="Japanese"
                 showtimes={projectionCinema.otherShowtimes}
               />
@@ -169,54 +177,6 @@ async function MovieProjectionSection({
         ))}
       </div>
     </section>
-  );
-}
-
-function ShowtimeGroup({
-  label,
-  showtimes,
-}: {
-  label: string;
-  showtimes: Showtime[];
-}) {
-  return (
-    <div className="mt-4">
-      <h4 className="text-xs font-semibold uppercase tracking-[0.14em] text-stone-500">
-        {label}
-      </h4>
-      <div className="mt-2 grid gap-2">
-        {showtimes.map((showtime, index) => (
-          <div
-            key={`${showtime.start}-${showtime.end}-${showtime.screen}-${index}`}
-            className="flex flex-col gap-2 rounded-md border border-stone-200 bg-stone-50 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-base font-semibold text-stone-950">
-                {showtime.start}
-              </span>
-              {showtime.end ? (
-                <span className="text-sm text-stone-500">
-                  to {showtime.end}
-                </span>
-              ) : null}
-              <span className="text-sm text-stone-600">{showtime.screen}</span>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              <LanguageBadge language={showtime.language} compact />
-              {showtime.formats.map((format, formatIndex) => (
-                <MetaBadge key={`${format}-${formatIndex}`}>{format}</MetaBadge>
-              ))}
-              {showtime.eventLabel ? (
-                <MetaBadge>{showtime.eventLabel}</MetaBadge>
-              ) : null}
-              <SeatStatus status={showtime.availability}>
-                {showtime.availabilityLabel}
-              </SeatStatus>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
   );
 }
 
@@ -229,7 +189,7 @@ function ProjectionLoadingState({
 }) {
   return (
     <div className="grid gap-4" aria-busy="true" aria-live="polite">
-      <div className="grid gap-4 border-b border-stone-200 pb-4 sm:grid-cols-[144px_minmax(0,1fr)]">
+      <div className="grid gap-4 rounded-md border border-stone-200 bg-white p-4 shadow-sm sm:grid-cols-[144px_minmax(0,1fr)]">
         <div className="aspect-[2/3] animate-pulse rounded-md bg-stone-200" />
         <div className="min-w-0 self-end">
           <div className="h-8 w-72 max-w-full animate-pulse rounded bg-stone-200" />
@@ -243,7 +203,7 @@ function ProjectionLoadingState({
       {Array.from({ length: 3 }, (_, index) => (
         <div
           key={index}
-          className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm"
+          className="rounded-md border border-stone-200 bg-white p-4 shadow-sm"
         >
           <div className="h-6 w-56 animate-pulse rounded bg-stone-200" />
           <div className="mt-5 grid gap-2">

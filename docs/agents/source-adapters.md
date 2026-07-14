@@ -35,7 +35,7 @@ Do not add source-specific fields to the universal model unless the UI or aggreg
 ## Ticketing links
 
 Do not add ticket purchase or booking links to source adapters or the universal
-schedule model. Easy Toho is for understanding Tokyo Cinema Screening options;
+schedule model. Tokyo Movie Times is for understanding Tokyo Cinema Screening options;
 ticketing target sites are Japanese-language, source-specific purchase flows and
 are intentionally out of scope.
 

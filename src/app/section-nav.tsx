@@ -3,10 +3,10 @@ import { PendingLink } from "./pending-link";
 type Section = "cinemas" | "movies" | "imax";
 
 const activeClass =
-  "rounded border border-red-700 bg-red-50 px-2.5 py-1 text-red-950 hover:bg-red-100";
+  "rounded-md border border-red-700 bg-red-700 px-3 py-2 text-white shadow-sm hover:bg-red-800";
 
 const inactiveClass =
-  "rounded border border-stone-300 bg-white px-2.5 py-1 text-stone-700 hover:border-stone-950";
+  "rounded-md border border-stone-200 bg-white px-3 py-2 text-stone-700 hover:border-stone-400 hover:text-stone-950";
 
 export function SectionNav({
   active,
@@ -20,7 +20,7 @@ export function SectionNav({
   imaxHref: string;
 }) {
   return (
-    <nav className="flex flex-wrap gap-2 text-xs font-semibold">
+    <nav className="flex flex-wrap gap-2 text-sm font-semibold">
       <PendingLink
         href={cinemasHref}
         aria-current={active === "cinemas" ? "page" : undefined}

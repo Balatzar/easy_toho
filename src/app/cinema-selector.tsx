@@ -43,16 +43,28 @@ export function CinemaSelector({
   const [mapFailed, setMapFailed] = useState(false);
   const activeView = mapFailed ? "list" : preferredView;
   const handleMapError = useCallback(() => setMapFailed(true), []);
+  const selectedCinema = cinemas.find(
+    (cinema) => cinema.slug === selectedCinemaSlug,
+  );
 
   return (
-    <div className="rounded-lg border border-stone-200 bg-white p-3 shadow-sm">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold text-stone-950">Cinema</h2>
-        <span className="text-xs text-stone-500">{cinemas.length} Tokyo</span>
+    <div className="rounded-md border border-stone-200 bg-white p-3 shadow-sm">
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-base font-semibold text-stone-950">Cinemas</h2>
+          <p className="mt-1 text-xs text-stone-500">
+            {selectedCinema
+              ? `${selectedCinema.area} / ${selectedCinema.source.name}`
+              : "Tokyo cinema map"}
+          </p>
+        </div>
+        <span className="rounded border border-stone-200 px-2 py-1 text-xs font-semibold text-stone-600">
+          {cinemas.length} Tokyo
+        </span>
       </div>
 
       <div
-        className="mb-3 grid grid-cols-2 rounded-md border border-stone-200 bg-stone-100 p-1"
+        className="mb-3 grid grid-cols-2 rounded-md border border-stone-200 bg-stone-50 p-1"
         role="tablist"
         aria-label="Cinema selector view"
       >
@@ -244,9 +256,13 @@ function CinemaMap({
               direction: "top",
               offset: [0, -8],
               opacity: 1,
-              permanent: true,
+              permanent: false,
             })
             .addTo(map);
+
+          if (selected) {
+            marker.openTooltip();
+          }
 
           marker.on("click", () => {
             if (cinema.slug === selectedCinemaSlugRef.current) return;
@@ -300,6 +316,12 @@ function CinemaMap({
       const pending = cinemaSlug === pendingCinemaSlug;
       marker.setIcon(pinIcon(L, cinemaSlug, selected, pending));
 
+      if (selected || pending) {
+        marker.openTooltip();
+      } else {
+        marker.closeTooltip();
+      }
+
       const tooltipElement = marker.getTooltip()?.getElement();
       tooltipElement?.classList.toggle(
         "cinema-map-tooltip--selected",
@@ -317,7 +339,7 @@ function CinemaMap({
     <div className="relative">
       <div
         ref={containerRef}
-        className="cinema-map h-[420px] overflow-hidden rounded-md border border-stone-200 bg-stone-100 sm:h-[480px] lg:h-[540px]"
+        className="cinema-map h-[320px] overflow-hidden rounded-md border border-stone-200 bg-stone-100 sm:h-[380px] lg:h-[430px]"
         aria-busy={pendingCinema ? "true" : undefined}
         aria-label="Tokyo Cinema map"
       />
@@ -386,21 +408,33 @@ function CinemaList({
             className={[
               "flex items-start gap-1.5 rounded-md border transition-colors",
               selected
-                ? "border-red-700 bg-red-50 text-red-950"
-                : "border-transparent text-stone-700 hover:border-stone-200 hover:bg-stone-50",
+                ? "border-red-700 bg-red-700 text-white shadow-sm"
+                : "border-stone-100 text-stone-700 hover:border-stone-300 hover:bg-stone-50",
             ].join(" ")}
           >
             <PendingLink
               href={`${plannerHref(cinema.slug, selectedDate)}#movies`}
-              className="block min-w-0 rounded-l-md py-2 pl-3 text-left"
+              className="block min-w-0 flex-1 rounded-l-md py-2 pl-3 text-left"
             >
               <span className="block text-sm font-semibold">{cinema.name}</span>
               <span className="mt-1 flex flex-wrap items-center gap-1.5">
-                <span className="text-xs text-stone-500">{cinema.area}</span>
+                <span
+                  className={
+                    selected ? "text-xs text-red-50" : "text-xs text-stone-500"
+                  }
+                >
+                  {cinema.area}
+                </span>
                 <ImaxBadge imax={cinema.imax} compact />
               </span>
             </PendingLink>
-            <CinemaMapLink cinema={cinema} className="mt-1.5 mr-2 h-5 w-5" />
+            <CinemaMapLink
+              cinema={cinema}
+              className={[
+                "mt-1.5 mr-2 h-5 w-5",
+                selected ? "text-white hover:bg-red-800" : "",
+              ].join(" ")}
+            />
           </div>
         );
       })}
@@ -436,7 +470,7 @@ function tabClass(selected: boolean): string {
   return [
     "rounded px-3 py-1.5 text-sm font-semibold transition-colors",
     selected
-      ? "bg-white text-stone-950 shadow-sm"
+      ? "bg-white text-red-700 shadow-sm"
       : "text-stone-600 hover:text-stone-950 disabled:text-stone-400",
   ].join(" ");
 }
