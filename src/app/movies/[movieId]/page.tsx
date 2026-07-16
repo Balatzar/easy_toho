@@ -162,13 +162,13 @@ async function MovieProjectionSection({
 
             {projectionCinema.englishShowtimes.length > 0 ? (
               <ShowtimeRows
-                label="English-watchable"
+                language="english"
                 showtimes={projectionCinema.englishShowtimes}
               />
             ) : null}
             {projectionCinema.otherShowtimes.length > 0 ? (
               <ShowtimeRows
-                label="Japanese"
+                language="japanese"
                 showtimes={projectionCinema.otherShowtimes}
               />
             ) : null}

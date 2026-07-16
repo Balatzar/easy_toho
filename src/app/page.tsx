@@ -398,12 +398,12 @@ function MovieCardView({
       <div className="col-span-2 border-t border-stone-100 p-3 lg:col-span-1 lg:border-t-0">
         {englishShowtimes.length > 0 ? (
           <ShowtimeRows
-            label="English-watchable"
+            language="english"
             showtimes={englishShowtimes}
           />
         ) : null}
         {otherShowtimes.length > 0 ? (
-          <ShowtimeRows label="Japanese" showtimes={otherShowtimes} />
+          <ShowtimeRows language="japanese" showtimes={otherShowtimes} />
         ) : null}
       </div>
     </article>

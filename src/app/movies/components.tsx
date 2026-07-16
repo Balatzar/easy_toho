@@ -128,23 +128,22 @@ export function LanguageBadge({
   language: LanguageRank;
   compact?: boolean;
 }) {
-  const label =
-    language === "english"
-      ? compact
-        ? "English"
-        : "English-watchable"
-      : "Japanese";
+  const code = language === "english" ? "EN" : "JP";
+  const label = language === "english" ? "English-watchable" : "Japanese";
 
   const classes =
     language === "english"
-      ? "border-emerald-700 bg-emerald-50 text-emerald-950"
-      : "border-stone-300 bg-stone-50 text-stone-700";
+      ? "border-sky-700 bg-sky-700 text-white"
+      : "border-rose-700 bg-rose-700 text-white";
 
   return (
     <span
-      className={`rounded border px-2 py-0.5 text-xs font-semibold ${classes}`}
+      className={`inline-flex items-center rounded border text-xs font-semibold ${classes}`}
     >
-      {label}
+      <span className="px-1.5 py-0.5 font-bold tracking-[0.08em]">{code}</span>
+      {!compact ? (
+        <span className="border-l border-white/40 px-2 py-0.5">{label}</span>
+      ) : null}
     </span>
   );
 }
@@ -181,18 +180,37 @@ export function SeatStatus({
 }
 
 export function ShowtimeRows({
-  label,
+  language,
   showtimes,
 }: {
-  label: string;
+  language: LanguageRank;
   showtimes: Showtime[];
 }) {
   const rows = groupShowtimes(showtimes);
+  const isEnglish = language === "english";
+  const label = isEnglish ? "English-watchable" : "Japanese";
 
   return (
-    <section className="border-t border-stone-100 py-3 first:border-t-0 first:pt-0 last:pb-0">
-      <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">
-        {label}
+    <section
+      className={[
+        "mt-2 rounded-md border p-3 first:mt-0",
+        isEnglish
+          ? "border-sky-200 bg-sky-50/70"
+          : "border-rose-200 bg-rose-50/70",
+      ].join(" ")}
+    >
+      <h3
+        className={[
+          "inline-flex items-center overflow-hidden rounded border text-xs font-semibold",
+          isEnglish
+            ? "border-sky-700 bg-sky-700 text-white"
+            : "border-rose-700 bg-rose-700 text-white",
+        ].join(" ")}
+      >
+        <span className="px-1.5 py-0.5 font-bold tracking-[0.08em]">
+          {isEnglish ? "EN" : "JP"}
+        </span>
+        <span className="border-l border-white/40 px-2 py-0.5">{label}</span>
       </h3>
       <div className="mt-2 grid gap-2">
         {rows.map((row) => (
