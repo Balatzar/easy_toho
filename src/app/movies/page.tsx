@@ -6,7 +6,7 @@ import {
   getCinemaBySlug,
 } from "@/lib/cinemas";
 import { getEnglishWatchableMovies } from "@/lib/schedule-aggregate";
-import { imaxHref, moviesHref, movieHref, plannerHref } from "@/lib/routes";
+import { moviesHref, movieHref } from "@/lib/routes";
 import { getPlanningDays, normalizeSelectedDate } from "@/lib/schedules";
 import {
   DateTabs,
@@ -49,9 +49,8 @@ export default async function MoviesPage({
             </p>
             <SectionNav
               active="movies"
-              cinemasHref={plannerHref(DEFAULT_CINEMA_SLUG, selectedDate)}
-              moviesHref={moviesHref(selectedDate)}
-              imaxHref={imaxHref(selectedDate)}
+              cinemaSlug={DEFAULT_CINEMA_SLUG}
+              selectedDate={selectedDate}
             />
           </div>
         </header>

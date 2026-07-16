@@ -12,7 +12,7 @@ import {
   getSchedule,
   normalizeSelectedDate,
 } from "@/lib/schedules";
-import { imaxHref, moviesHref, movieHref, plannerHref } from "@/lib/routes";
+import { movieHref, plannerHref } from "@/lib/routes";
 import { BrandHeader } from "./brand";
 import { CinemaMapLink } from "./cinema-map-link";
 import { CinemaSelector } from "./cinema-selector";
@@ -54,9 +54,8 @@ export default async function Home({
             </p>
             <SectionNav
               active="cinemas"
-              cinemasHref={plannerHref(selectedCinema.slug, selectedDate)}
-              moviesHref={moviesHref(selectedDate)}
-              imaxHref={imaxHref(selectedDate)}
+              cinemaSlug={selectedCinema.slug}
+              selectedDate={selectedDate}
             />
           </div>
         </header>

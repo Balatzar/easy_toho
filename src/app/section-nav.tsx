@@ -1,6 +1,7 @@
+import { imaxHref, moviesHref, plannerHref, statsHref } from "@/lib/routes";
 import { PendingLink } from "./pending-link";
 
-type Section = "cinemas" | "movies" | "imax";
+type Section = "cinemas" | "movies" | "imax" | "stats";
 
 const activeClass =
   "rounded-md border border-red-700 bg-red-700 px-3 py-2 text-white shadow-sm hover:bg-red-800";
@@ -10,37 +11,42 @@ const inactiveClass =
 
 export function SectionNav({
   active,
-  cinemasHref,
-  moviesHref,
-  imaxHref,
+  cinemaSlug,
+  selectedDate,
 }: {
   active: Section;
-  cinemasHref: string;
-  moviesHref: string;
-  imaxHref: string;
+  cinemaSlug: string;
+  selectedDate: string;
 }) {
   return (
     <nav className="flex flex-wrap gap-2 text-sm font-semibold">
       <PendingLink
-        href={cinemasHref}
+        href={plannerHref(cinemaSlug, selectedDate)}
         aria-current={active === "cinemas" ? "page" : undefined}
         className={active === "cinemas" ? activeClass : inactiveClass}
       >
         Cinemas
       </PendingLink>
       <PendingLink
-        href={moviesHref}
+        href={moviesHref(selectedDate)}
         aria-current={active === "movies" ? "page" : undefined}
         className={active === "movies" ? activeClass : inactiveClass}
       >
         Movies
       </PendingLink>
       <PendingLink
-        href={imaxHref}
+        href={imaxHref(selectedDate)}
         aria-current={active === "imax" ? "page" : undefined}
         className={active === "imax" ? activeClass : inactiveClass}
       >
         IMAX
+      </PendingLink>
+      <PendingLink
+        href={statsHref(selectedDate)}
+        aria-current={active === "stats" ? "page" : undefined}
+        className={active === "stats" ? activeClass : inactiveClass}
+      >
+        Stats
       </PendingLink>
     </nav>
   );

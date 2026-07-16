@@ -61,12 +61,12 @@ export type ImaxAvailableMoviesResult = {
   failedCinemas: CinemaScheduleFailure[];
 };
 
-type LoadedCinemaSchedule = {
+export type LoadedCinemaSchedule = {
   cinema: Cinema;
   cards: MovieCard[];
 };
 
-type MultiCinemaScheduleResult = {
+export type MultiCinemaScheduleResult = {
   loaded: LoadedCinemaSchedule[];
   failedCinemas: CinemaScheduleFailure[];
 };
@@ -272,7 +272,7 @@ export async function getMovieProjectionList(
   };
 }
 
-async function getCinemaSchedules(
+export async function getCinemaSchedules(
   selectedDate: string,
   cinemas: Cinema[] = TOKYO_CINEMAS,
 ): Promise<MultiCinemaScheduleResult> {

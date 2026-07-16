@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { DEFAULT_CINEMA_SLUG, getCinemaBySlug } from "@/lib/cinemas";
 import { getMovieProjectionList } from "@/lib/schedule-aggregate";
-import { imaxHref, movieHref, moviesHref, plannerHref } from "@/lib/routes";
+import { movieHref } from "@/lib/routes";
 import {
   type PlanningDay,
   getPlanningDays,
@@ -56,9 +56,8 @@ export default async function MoviePage({
             </p>
             <SectionNav
               active="movies"
-              cinemasHref={plannerHref(DEFAULT_CINEMA_SLUG, selectedDate)}
-              moviesHref={moviesHref(selectedDate)}
-              imaxHref={imaxHref(selectedDate)}
+              cinemaSlug={DEFAULT_CINEMA_SLUG}
+              selectedDate={selectedDate}
             />
           </div>
         </header>
