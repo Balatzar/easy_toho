@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense, type ReactNode } from "react";
-import { DEFAULT_CINEMA_SLUG, getCinemaBySlug } from "@/lib/cinemas";
+import { DEFAULT_CINEMA_SLUG } from "@/lib/cinemas";
 import {
   type CinemaStatsResult,
   getCinemaStats,
@@ -10,7 +10,7 @@ import {
   plannerHref,
   statsHref,
 } from "@/lib/routes";
-import { getPlanningDays, normalizeSelectedDate } from "@/lib/schedules";
+import { resolvePlanningSelection } from "@/lib/schedules";
 import { BrandHeader } from "../brand";
 import { createPageMetadata } from "../metadata-utils";
 import { DateTabs, PartialScheduleWarning } from "../movies/components";
@@ -32,13 +32,10 @@ export default async function StatsPage({
   searchParams: SearchParams;
 }) {
   const params = await searchParams;
-  const defaultCinema = getCinemaBySlug(DEFAULT_CINEMA_SLUG);
-  const days = await getPlanningDays(defaultCinema);
-  const selectedDate = normalizeSelectedDate(firstParam(params.date), days);
-  const selectedDay = days.find((day) => day.date === selectedDate);
-  const dateLabel = selectedDay
-    ? `${selectedDay.weekday}, ${selectedDay.label}`
-    : selectedDate;
+  const { days, selectedDate, selectedDay } = resolvePlanningSelection(
+    params.date,
+  );
+  const dateLabel = `${selectedDay.weekday}, ${selectedDay.label}`;
 
   return (
     <main className="min-h-screen bg-[#f5f2ec] text-stone-950">
@@ -514,8 +511,4 @@ function percentage(value: number, total: number): number {
 
 function formatNumber(value: number): string {
   return new Intl.NumberFormat("en-US").format(value);
-}
-
-function firstParam(value: string | string[] | undefined): string | undefined {
-  return Array.isArray(value) ? value[0] : value;
 }

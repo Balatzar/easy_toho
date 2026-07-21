@@ -5,8 +5,6 @@ import {
   type PlanningDay,
   type Showtime,
   type ShowtimeAvailability,
-  firstSelectableDate,
-  isTodayTokyo,
 } from "@/lib/schedules";
 import { CinemaMapLink } from "../cinema-map-link";
 import { PendingLink } from "../pending-link";
@@ -20,8 +18,6 @@ export function DateTabs({
   selectedDate: string;
   hrefForDate: (date: string) => string;
 }) {
-  const fallbackDate = firstSelectableDate(days);
-
   return (
     <nav
       className="flex overflow-x-auto rounded-md border border-stone-200 bg-white shadow-sm"
@@ -29,8 +25,7 @@ export function DateTabs({
     >
       {days.map((day) => {
         const active = day.date === selectedDate;
-        const label = isTodayTokyo(day.date) ? "Today" : day.weekday;
-        const href = hrefForDate(day.selectable ? day.date : fallbackDate);
+        const label = day.isToday ? "Today" : day.weekday;
 
         if (!day.selectable) {
           return (
@@ -49,7 +44,7 @@ export function DateTabs({
         return (
           <PendingLink
             key={day.date}
-            href={href}
+            href={hrefForDate(day.date)}
             className={[
               "flex min-w-28 flex-col border-r border-stone-200 px-4 py-3 transition-colors last:border-r-0",
               active

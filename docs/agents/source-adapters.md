@@ -6,6 +6,7 @@ Use this when adding a new cinema schedule website or a new cinema from an exist
 
 - `CONTEXT.md` for domain vocabulary.
 - `docs/adr/0009-source-adapters-and-conservative-movie-identity.md` for the adapter decision.
+- `src/lib/planning-window.ts` for Planning Window and Selected Day policy.
 - `src/lib/schedule-model.ts` for the universal object contract.
 - `src/lib/schedules.ts` for the adapter facade.
 - `src/lib/toho-adapter.ts`, `src/lib/smt-adapter.ts`, and
@@ -26,6 +27,14 @@ Construct every `MovieCard` through `createMovieCard` from
 reader-facing title, card-level Language Presentation, and Published Showtime
 ordering. Adapters supply already-parsed universal fields and keep provider
 parsing behind their seam.
+
+Parse provider calendars into source availability records containing only
+`date` and `selectable`, then pass them to `createPlanningWindow`. The Planning
+Window module owns Tokyo Day labels and the fixed today-plus-six-days range. A
+date omitted by a successful Schedule Source response is not selectable; if the
+calendar request fails entirely, call
+`createPlanningWindow(undefined, new Date())` at the adapter orchestration seam
+to preserve the fallback Planning Window while keeping the core clock explicit.
 
 Keep provider-specific details inside the adapter:
 
@@ -98,9 +107,9 @@ Do not trust provider movie ids for cross-source matching.
 3. Return only universal model objects from `schedule-model.ts`.
 4. Add a private config type and source entry in `src/lib/cinemas.ts`.
 5. Add a case to `src/lib/schedules.ts`.
-6. Build Movie Cards with `createMovieCard`, and reuse shared helpers from
-   `schedule-model.ts` for source-neutral language, format, dates, and
-   past-showtime filtering where possible.
+6. Build Movie Cards with `createMovieCard`; build Planning Days with
+   `createPlanningWindow`; and reuse shared helpers from `schedule-model.ts` for
+   source-neutral language, format, and past-showtime filtering where possible.
 7. If the source needs new shared behavior, add it to `schedule-model.ts` only when it remains source-neutral.
 
 ## Verification

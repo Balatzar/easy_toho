@@ -1,10 +1,14 @@
 import { unstable_cache } from "next/cache";
 import type { EigaCinemaConfig } from "./cinemas";
 import {
+  type PlanningDay,
+  type SourcePlanningDay,
+  createPlanningWindow,
+} from "./planning-window";
+import {
   SOURCE_CACHE_SECONDS,
   type LanguageRank,
   type MovieCard,
-  type PlanningDay,
   type ScheduleResult,
   type Showtime,
   type ShowtimeAvailability,
@@ -12,14 +16,11 @@ import {
   createMovieCard,
   dateToCompactDate,
   extractFormats,
-  fallbackPlanningDays,
   hidePastShowtimes,
   languageLabel,
   normalizeTime,
   sortMovieCards,
-  toPlanningDay,
   unique,
-  upcomingPlanningDays,
 } from "./schedule-model";
 import {
   fetchTextWithTimeout,
@@ -51,19 +52,17 @@ export async function getPlanningDays(
   config: EigaCinemaConfig,
 ): Promise<PlanningDay[]> {
   try {
-    const days = upcomingPlanningDays(
-      await getCachedPlanningDays(config.theaterPath),
-    );
+    const sourceDays = await getCachedPlanningDays(config.theaterPath);
 
-    if (days.length === 0) throw new Error("eiga.com returned no planning days.");
-    return days;
+    if (sourceDays.length === 0) throw new Error("eiga.com returned no planning days.");
+    return createPlanningWindow(sourceDays, new Date());
   } catch {
-    return fallbackPlanningDays();
+    return createPlanningWindow(undefined, new Date());
   }
 }
 
 const getCachedPlanningDays = unstable_cache(
-  async (theaterPath: string): Promise<PlanningDay[]> => {
+  async (theaterPath: string): Promise<SourcePlanningDay[]> => {
     const html = await fetchEigaText(eigaUrl(theaterPath), 8_000);
     return parsePlanningDays(html);
   },
@@ -124,7 +123,7 @@ const getCachedMovieDetail = unstable_cache(
   { revalidate: SOURCE_CACHE_SECONDS },
 );
 
-function parsePlanningDays(html: string): PlanningDay[] {
+function parsePlanningDays(html: string): SourcePlanningDay[] {
   const dates = new Set<string>();
 
   for (const match of html.matchAll(/<option[^>]*value="(\d{8})"[^>]*>/g)) {
@@ -139,7 +138,7 @@ function parsePlanningDays(html: string): PlanningDay[] {
 
   return Array.from(dates)
     .sort()
-    .map((date) => toPlanningDay(date, true));
+    .map((date) => ({ date, selectable: true }));
 }
 
 async function parseMovieCards(

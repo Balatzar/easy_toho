@@ -3,14 +3,13 @@ import { Suspense } from "react";
 import {
   DEFAULT_CINEMA_SLUG,
   IMAX_CAPABLE_CINEMAS,
-  getCinemaBySlug,
 } from "@/lib/cinemas";
 import {
   type ImaxAvailableMovie,
   getImaxAvailableMovies,
 } from "@/lib/schedule-aggregate";
 import { imaxHref, movieHref } from "@/lib/routes";
-import { getPlanningDays, normalizeSelectedDate } from "@/lib/schedules";
+import { resolvePlanningSelection } from "@/lib/schedules";
 import {
   DateTabs,
   MetaBadge,
@@ -39,11 +38,9 @@ export default async function ImaxPage({
   searchParams: SearchParams;
 }) {
   const params = await searchParams;
-  const planningCinema =
-    IMAX_CAPABLE_CINEMAS[0] ?? getCinemaBySlug(DEFAULT_CINEMA_SLUG);
-  const days = await getPlanningDays(planningCinema);
-  const selectedDate = normalizeSelectedDate(firstParam(params.date), days);
-  const selectedDay = days.find((day) => day.date === selectedDate);
+  const { days, selectedDate, selectedDay } = resolvePlanningSelection(
+    params.date,
+  );
 
   return (
     <main className="min-h-screen bg-[#fbfaf7] text-stone-950">
@@ -238,8 +235,4 @@ function ImaxMovieListLoadingState() {
       ))}
     </div>
   );
-}
-
-function firstParam(value: string | string[] | undefined): string | undefined {
-  return Array.isArray(value) ? value[0] : value;
 }

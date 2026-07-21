@@ -3,11 +3,10 @@ import { Suspense } from "react";
 import {
   DEFAULT_CINEMA_SLUG,
   TOKYO_CINEMAS,
-  getCinemaBySlug,
 } from "@/lib/cinemas";
 import { getEnglishWatchableMovies } from "@/lib/schedule-aggregate";
 import { moviesHref, movieHref } from "@/lib/routes";
-import { getPlanningDays, normalizeSelectedDate } from "@/lib/schedules";
+import { resolvePlanningSelection } from "@/lib/schedules";
 import {
   DateTabs,
   MoviePoster,
@@ -33,10 +32,9 @@ export default async function MoviesPage({
   searchParams: SearchParams;
 }) {
   const params = await searchParams;
-  const defaultCinema = getCinemaBySlug(DEFAULT_CINEMA_SLUG);
-  const days = await getPlanningDays(defaultCinema);
-  const selectedDate = normalizeSelectedDate(firstParam(params.date), days);
-  const selectedDay = days.find((day) => day.date === selectedDate);
+  const { days, selectedDate, selectedDay } = resolvePlanningSelection(
+    params.date,
+  );
 
   return (
     <main className="min-h-screen bg-[#fbfaf7] text-stone-950">
@@ -147,8 +145,4 @@ function MovieGridLoadingState() {
       ))}
     </div>
   );
-}
-
-function firstParam(value: string | string[] | undefined): string | undefined {
-  return Array.isArray(value) ? value[0] : value;
 }

@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { DEFAULT_CINEMA_SLUG, getCinemaBySlug } from "@/lib/cinemas";
+import { DEFAULT_CINEMA_SLUG } from "@/lib/cinemas";
 import { getMovieProjectionList } from "@/lib/schedule-aggregate";
 import { movieHref } from "@/lib/routes";
 import {
   type PlanningDay,
-  getPlanningDays,
-  normalizeSelectedDate,
+  resolvePlanningSelection,
 } from "@/lib/schedules";
 import {
   DateTabs,
@@ -40,10 +39,9 @@ export default async function MoviePage({
   searchParams: SearchParams;
 }) {
   const [{ movieId }, query] = await Promise.all([params, searchParams]);
-  const defaultCinema = getCinemaBySlug(DEFAULT_CINEMA_SLUG);
-  const days = await getPlanningDays(defaultCinema);
-  const selectedDate = normalizeSelectedDate(firstParam(query.date), days);
-  const selectedDay = days.find((day) => day.date === selectedDate);
+  const { days, selectedDate, selectedDay } = resolvePlanningSelection(
+    query.date,
+  );
 
   return (
     <main className="min-h-screen bg-[#fbfaf7] text-stone-950">
@@ -217,8 +215,4 @@ function ProjectionLoadingState({
       ))}
     </div>
   );
-}
-
-function firstParam(value: string | string[] | undefined): string | undefined {
-  return Array.isArray(value) ? value[0] : value;
 }

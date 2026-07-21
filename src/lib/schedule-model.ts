@@ -10,13 +10,6 @@ export type ScheduleSource = {
   name: string;
 };
 
-export type PlanningDay = {
-  date: string;
-  weekday: string;
-  label: string;
-  selectable: boolean;
-};
-
 export type ShowtimeAvailability =
   | "available"
   | "limited"
@@ -105,77 +98,6 @@ export function createMovieCard({
     rating,
     language: bestLanguage(showtimes),
     showtimes,
-  };
-}
-
-export function firstSelectableDate(days: PlanningDay[]): string {
-  const today = todayTokyo();
-  return (
-    days.find((day) => day.selectable && day.date >= today)?.date ??
-    days.find((day) => day.date >= today)?.date ??
-    today
-  );
-}
-
-export function normalizeSelectedDate(
-  rawDate: string | undefined,
-  days: PlanningDay[],
-): string {
-  const normalized = normalizeUrlDate(rawDate);
-
-  if (
-    normalized &&
-    normalized >= todayTokyo() &&
-    days.some((day) => day.date === normalized && day.selectable)
-  ) {
-    return normalized;
-  }
-
-  return firstSelectableDate(days);
-}
-
-export function fallbackPlanningDays(): PlanningDay[] {
-  const today = parseDateParts(todayTokyo());
-  const base = Date.UTC(today.year, today.month - 1, today.day);
-
-  return Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(base + index * 86_400_000);
-    const formatted = [
-      date.getUTCFullYear(),
-      String(date.getUTCMonth() + 1).padStart(2, "0"),
-      String(date.getUTCDate()).padStart(2, "0"),
-    ].join("-");
-
-    return toPlanningDay(formatted, true);
-  });
-}
-
-export function upcomingPlanningDays(days: PlanningDay[]): PlanningDay[] {
-  const today = todayTokyo();
-  return days.filter((day) => day.date >= today).slice(0, 7);
-}
-
-export function isTodayTokyo(date: string): boolean {
-  return date === todayTokyo();
-}
-
-export function toPlanningDay(date: string, selectable: boolean): PlanningDay {
-  const parsed = parseDateParts(date);
-  const weekday = new Intl.DateTimeFormat("en-US", {
-    weekday: "short",
-    timeZone: "UTC",
-  }).format(new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day)));
-  const monthDay = new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day)));
-
-  return {
-    date,
-    weekday,
-    label: monthDay,
-    selectable,
   };
 }
 
@@ -522,10 +444,6 @@ function hasImaxFormat(formats: string[]): boolean {
   return formats.some((format) => format === "IMAX" || format === "IMAX Laser");
 }
 
-function todayTokyo(): string {
-  return tokyoDateTime(new Date()).date;
-}
-
 function tokyoDateTimeKey(date: Date): number {
   const current = tokyoDateTime(date);
   return dateTimeKey(current.date, current.minutes);
@@ -556,15 +474,6 @@ function tokyoDateTime(date: Date): { date: string; minutes: number } {
 function dateTimeKey(date: string, minutes: number): number {
   const parsed = parseDateParts(date);
   return Date.UTC(parsed.year, parsed.month - 1, parsed.day) / 60_000 + minutes;
-}
-
-function normalizeUrlDate(rawDate: string | undefined): string | null {
-  if (!rawDate) return null;
-
-  if (/^\d{8}$/.test(rawDate)) return compactDateToDate(rawDate);
-  if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) return rawDate;
-
-  return null;
 }
 
 function parseDateParts(date: string): {

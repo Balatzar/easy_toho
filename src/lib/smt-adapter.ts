@@ -1,10 +1,14 @@
 import { unstable_cache } from "next/cache";
 import type { SmtCinemaConfig } from "./cinemas";
 import {
+  type PlanningDay,
+  type SourcePlanningDay,
+  createPlanningWindow,
+} from "./planning-window";
+import {
   SOURCE_CACHE_SECONDS,
   type LanguageRank,
   type MovieCard,
-  type PlanningDay,
   type ScheduleResult,
   type Showtime,
   type ShowtimeAvailability,
@@ -13,15 +17,12 @@ import {
   createMovieCard,
   dateToCompactDate,
   extractFormats,
-  fallbackPlanningDays,
   hidePastShowtimes,
   languageLabel,
   movieIdentityId,
   normalizeTime,
   sortMovieCards,
   toHalfWidth,
-  toPlanningDay,
-  upcomingPlanningDays,
 } from "./schedule-model";
 import {
   fetchTextWithTimeout,
@@ -44,14 +45,15 @@ export async function getPlanningDays(
   config: SmtCinemaConfig,
 ): Promise<PlanningDay[]> {
   try {
-    const days = upcomingPlanningDays(
-      await getCachedPlanningDays(config.schedulePrefix, config.theaterCode),
+    const sourceDays = await getCachedPlanningDays(
+      config.schedulePrefix,
+      config.theaterCode,
     );
 
-    if (days.length === 0) throw new Error("SMT returned no planning days.");
-    return days;
+    if (sourceDays.length === 0) throw new Error("SMT returned no planning days.");
+    return createPlanningWindow(sourceDays, new Date());
   } catch {
-    return fallbackPlanningDays();
+    return createPlanningWindow(undefined, new Date());
   }
 }
 
@@ -59,7 +61,7 @@ const getCachedPlanningDays = unstable_cache(
   async (
     schedulePrefix: string,
     theaterCode: string,
-  ): Promise<PlanningDay[]> => {
+  ): Promise<SourcePlanningDay[]> => {
     const html = await fetchSmtText(
       `${SMT_SCHEDULE_BASE}/${schedulePrefix}_${theaterCode}_schedule_daily_date_area.html`,
       6_000,
@@ -118,7 +120,7 @@ const getCachedScheduleSnapshot = unstable_cache(
   { revalidate: SOURCE_CACHE_SECONDS },
 );
 
-function parsePlanningDays(html: string): PlanningDay[] {
+function parsePlanningDays(html: string): SourcePlanningDay[] {
   return Array.from(
     html.matchAll(/<div id="(\d{4}_\d{8})" class="([^"]*)">/g),
   ).map((match) => {
@@ -126,7 +128,10 @@ function parsePlanningDays(html: string): PlanningDay[] {
     const [, compactDate] = id.split("_");
     const classes = className.split(/\s+/);
 
-    return toPlanningDay(compactDateToDate(compactDate), !classes.includes("ng"));
+    return {
+      date: compactDateToDate(compactDate),
+      selectable: !classes.includes("ng"),
+    };
   });
 }
 

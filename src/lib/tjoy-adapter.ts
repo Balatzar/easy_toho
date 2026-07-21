@@ -1,23 +1,24 @@
 import { unstable_cache } from "next/cache";
 import type { TjoyCinemaConfig } from "./cinemas";
 import {
+  type PlanningDay,
+  type SourcePlanningDay,
+  createPlanningWindow,
+} from "./planning-window";
+import {
   SOURCE_CACHE_SECONDS,
   type LanguageRank,
   type MovieCard,
-  type PlanningDay,
   type ScheduleResult,
   type Showtime,
   type ShowtimeAvailability,
   createMovieCard,
-  fallbackPlanningDays,
   hidePastShowtimes,
   languageLabel,
   normalizeTime,
   sortMovieCards,
   toHalfWidth,
-  toPlanningDay,
   unique,
-  upcomingPlanningDays,
 } from "./schedule-model";
 import {
   fetchWithTimeout,
@@ -55,19 +56,17 @@ export async function getPlanningDays(
   config: TjoyCinemaConfig,
 ): Promise<PlanningDay[]> {
   try {
-    const days = upcomingPlanningDays(
-      await getCachedPlanningDays(config.sitePath),
-    );
+    const sourceDays = await getCachedPlanningDays(config.sitePath);
 
-    if (days.length === 0) throw new Error("T-Joy returned no planning days.");
-    return days;
+    if (sourceDays.length === 0) throw new Error("T-Joy returned no planning days.");
+    return createPlanningWindow(sourceDays, new Date());
   } catch {
-    return fallbackPlanningDays();
+    return createPlanningWindow(undefined, new Date());
   }
 }
 
 const getCachedPlanningDays = unstable_cache(
-  async (sitePath: string): Promise<PlanningDay[]> => {
+  async (sitePath: string): Promise<SourcePlanningDay[]> => {
     const session = await fetchPageSession(sitePath, 8_000);
     return parsePlanningDays(session.html);
   },
@@ -125,8 +124,8 @@ const getCachedScheduleSnapshot = unstable_cache(
   { revalidate: SOURCE_CACHE_SECONDS },
 );
 
-function parsePlanningDays(html: string): PlanningDay[] {
-  const days = new Map<string, PlanningDay>();
+function parsePlanningDays(html: string): SourcePlanningDay[] {
+  const days = new Map<string, SourcePlanningDay>();
   const matches = html.matchAll(
     /<a class="calendar-item\s+d-block\s*([^"]*)"[^>]*data-date="(\d{4}-\d{2}-\d{2})"[^>]*>/g,
   );
@@ -134,7 +133,10 @@ function parsePlanningDays(html: string): PlanningDay[] {
   for (const match of matches) {
     const [, className, date] = match;
     if (!days.has(date)) {
-      days.set(date, toPlanningDay(date, !className.includes("calendar-disable")));
+      days.set(date, {
+        date,
+        selectable: !className.includes("calendar-disable"),
+      });
     }
   }
 

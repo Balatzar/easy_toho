@@ -1,18 +1,19 @@
 import type { TohoCinemaConfig } from "./cinemas";
 import {
-  type MovieCard,
   type PlanningDay,
+  createPlanningWindow,
+} from "./planning-window";
+import {
+  type MovieCard,
   type ScheduleResult,
   type Showtime,
   type ShowtimeAvailability,
   createMovieCard,
   hidePastShowtimes,
   sortMovieCards,
-  upcomingPlanningDays,
 } from "./schedule-model";
 import {
   type MovieCard as TohoMovieCard,
-  type PlanningDay as TohoPlanningDay,
   type SeatSalesStatusCode,
   type Showtime as TohoShowtime,
   getPlanningDays as getTohoPlanningDays,
@@ -22,8 +23,14 @@ import {
 export async function getPlanningDays(
   config: TohoCinemaConfig,
 ): Promise<PlanningDay[]> {
-  const days = await getTohoPlanningDays(config.scheduleCode);
-  return upcomingPlanningDays(days.map(toPlanningDay));
+  try {
+    return createPlanningWindow(
+      await getTohoPlanningDays(config.scheduleCode),
+      new Date(),
+    );
+  } catch {
+    return createPlanningWindow(undefined, new Date());
+  }
 }
 
 export async function getSchedule(
@@ -43,15 +50,6 @@ export async function getSchedule(
   };
 
   return hidePastShowtimes(schedule, selectedDate, new Date());
-}
-
-function toPlanningDay(day: TohoPlanningDay): PlanningDay {
-  return {
-    date: day.date,
-    weekday: day.weekday,
-    label: day.label,
-    selectable: day.selectable,
-  };
 }
 
 function toMovieCard(card: TohoMovieCard): MovieCard {

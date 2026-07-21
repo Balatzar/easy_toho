@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import type { TohoCinemaConfig } from "./cinemas";
+import type { SourcePlanningDay } from "./planning-window";
 import {
   type LanguageRank,
   classifyLanguage,
@@ -13,16 +14,7 @@ import {
 const TOHO_API_BASE = "https://api2.tohotheater.jp";
 const TOHO_MOVIE_BASE = "https://hlo.tohotheater.jp/net/movie/TNPI3060J01.do";
 const TOHO_IMAGE_BASE = "https://www.tohotheater.jp/images_net/movie";
-const TOKYO_TIME_ZONE = "Asia/Tokyo";
 const TOHO_CACHE_SECONDS = 3_600;
-
-export type PlanningDay = {
-  date: string;
-  tohoDate: string;
-  weekday: string;
-  label: string;
-  selectable: boolean;
-};
 
 export type SeatSalesStatusCode = "A" | "B" | "C" | "D" | "G" | "unknown";
 
@@ -128,16 +120,12 @@ type MovieGroup = {
 
 export async function getPlanningDays(
   scheduleCode: string,
-): Promise<PlanningDay[]> {
-  try {
-    return await getCachedPlanningDays(scheduleCode);
-  } catch {
-    return fallbackPlanningDays();
-  }
+): Promise<SourcePlanningDay[]> {
+  return getCachedPlanningDays(scheduleCode);
 }
 
 const getCachedPlanningDays = unstable_cache(
-  async (scheduleCode: string): Promise<PlanningDay[]> => {
+  async (scheduleCode: string): Promise<SourcePlanningDay[]> => {
     const days = await fetchPlanningDays(scheduleCode);
     if (days.length === 0) {
       throw new Error("TOHO returned no planning days.");
@@ -149,7 +137,9 @@ const getCachedPlanningDays = unstable_cache(
   { revalidate: TOHO_CACHE_SECONDS },
 );
 
-async function fetchPlanningDays(scheduleCode: string): Promise<PlanningDay[]> {
+async function fetchPlanningDays(
+  scheduleCode: string,
+): Promise<SourcePlanningDay[]> {
   const params = new URLSearchParams({
     __type__: "html",
     __useResultInfo__: "no",
@@ -170,7 +160,10 @@ async function fetchPlanningDays(scheduleCode: string): Promise<PlanningDay[]> {
     data.data
       ?.filter((day) => typeof day.date === "string")
       .slice(0, 7)
-      .map((day) => toPlanningDay(day.date!, day.selectable === "1")) ?? []
+      .map((day) => ({
+        date: tohoToDate(day.date!),
+        selectable: day.selectable === "1",
+      })) ?? []
   );
 }
 
@@ -460,72 +453,12 @@ function deterministicArtworkUrl(mcode: string): string {
   return `${TOHO_IMAGE_BASE}/${mcode}/SAKUHIN${mcode}_1.jpg`;
 }
 
-function toPlanningDay(tohoDate: string, selectable: boolean): PlanningDay {
-  const date = tohoToDate(tohoDate);
-  const parsed = parseDateParts(date);
-  const weekday = new Intl.DateTimeFormat("en-US", {
-    weekday: "short",
-    timeZone: "UTC",
-  }).format(new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day)));
-  const monthDay = new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day)));
-
-  return {
-    date,
-    tohoDate,
-    weekday,
-    label: monthDay,
-    selectable,
-  };
-}
-
-function fallbackPlanningDays(): PlanningDay[] {
-  const today = parseDateParts(todayTokyo());
-  const base = Date.UTC(today.year, today.month - 1, today.day);
-
-  return Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(base + index * 86_400_000);
-    const formatted = [
-      date.getUTCFullYear(),
-      String(date.getUTCMonth() + 1).padStart(2, "0"),
-      String(date.getUTCDate()).padStart(2, "0"),
-    ].join("-");
-
-    return toPlanningDay(dateToToho(formatted), true);
-  });
-}
-
-function todayTokyo(): string {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: TOKYO_TIME_ZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date());
-
-  const value = (type: string) =>
-    parts.find((part) => part.type === type)?.value ?? "";
-  return `${value("year")}-${value("month")}-${value("day")}`;
-}
-
 function dateToToho(date: string): string {
   return date.replaceAll("-", "");
 }
 
 function tohoToDate(date: string): string {
   return `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}`;
-}
-
-function parseDateParts(date: string): {
-  year: number;
-  month: number;
-  day: number;
-} {
-  const [year, month, day] = date.split("-").map(Number);
-  return { year, month, day };
 }
 
 async function fetchJson<T>(url: string, timeoutMs: number): Promise<T> {

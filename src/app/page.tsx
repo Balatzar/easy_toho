@@ -10,7 +10,7 @@ import {
   type PlanningDay,
   getPlanningDays,
   getSchedule,
-  normalizeSelectedDate,
+  resolvePlanningSelection,
 } from "@/lib/schedules";
 import { movieHref, plannerHref } from "@/lib/routes";
 import { BrandHeader } from "./brand";
@@ -38,9 +38,10 @@ export default async function Home({
   const params = await searchParams;
   const cinemaSlug = firstParam(params.cinema) ?? DEFAULT_CINEMA_SLUG;
   const selectedCinema = getCinemaBySlug(cinemaSlug);
-  const days = await getPlanningDays(selectedCinema);
-  const selectedDate = normalizeSelectedDate(firstParam(params.date), days);
-  const selectedDay = days.find((day) => day.date === selectedDate);
+  const { days, selectedDate, selectedDay } = resolvePlanningSelection(
+    params.date,
+    await getPlanningDays(selectedCinema),
+  );
   const scheduleKey = `${selectedCinema.slug}-${selectedDate}`;
 
   return (

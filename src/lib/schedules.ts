@@ -1,6 +1,12 @@
 import type { Cinema } from "./cinemas";
 import { getCinemaConfig } from "./cinemas";
-import type { PlanningDay, ScheduleResult } from "./schedule-model";
+import {
+  type PlanningDay,
+  type PlanningSelection,
+  createPlanningWindow,
+  resolvePlanningSelection as resolveSelection,
+} from "./planning-window";
+import type { ScheduleResult } from "./schedule-model";
 import * as eigaAdapter from "./eiga-adapter";
 import * as smtAdapter from "./smt-adapter";
 import * as tjoyAdapter from "./tjoy-adapter";
@@ -9,15 +15,23 @@ import * as tohoAdapter from "./toho-adapter";
 export {
   type LanguageRank,
   type MovieCard,
-  type PlanningDay,
   type ScheduleResult,
   type Showtime,
   type ShowtimeAvailability,
-  firstSelectableDate,
-  isTodayTokyo,
   isImaxScreening,
-  normalizeSelectedDate,
 } from "./schedule-model";
+
+export {
+  type PlanningDay,
+  type PlanningSelection,
+} from "./planning-window";
+
+export function resolvePlanningSelection(
+  rawDate: string | string[] | undefined,
+  days = createPlanningWindow(undefined, new Date()),
+): PlanningSelection {
+  return resolveSelection(rawDate, days);
+}
 
 export async function getPlanningDays(cinema: Cinema): Promise<PlanningDay[]> {
   const config = getCinemaConfig(cinema);
