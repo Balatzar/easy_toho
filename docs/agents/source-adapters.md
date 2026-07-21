@@ -21,6 +21,12 @@ Each adapter returns the same app-level objects:
 - `MovieCard`
 - `Showtime`
 
+Construct every `MovieCard` through `createMovieCard` from
+`schedule-model.ts`. The constructor owns source-neutral Movie Identity,
+reader-facing title, card-level Language Presentation, and Published Showtime
+ordering. Adapters supply already-parsed universal fields and keep provider
+parsing behind their seam.
+
 Keep provider-specific details inside the adapter:
 
 - raw provider ids
@@ -60,7 +66,10 @@ and let the UI omit the end-time label.
 
 ## Movie identity
 
-Adapters should call `movieIdentityId` from `schedule-model.ts`.
+Adapters should call `createMovieCard` from `schedule-model.ts`; it computes the
+final Movie Identity. An adapter may call `movieIdentityId` earlier only when it
+needs the same identity as a grouping key before the final Movie Card exists, as
+the SMT adapter currently does.
 
 The current rule intentionally favors avoiding false merges:
 
@@ -76,7 +85,7 @@ Do not trust provider movie ids for cross-source matching.
 ## Adding a cinema from an existing source
 
 1. Confirm the provider website and theater identifiers from the live source.
-2. Add the cinema to `CINEMA_CONFIGS` in `src/lib/cinemas.ts`.
+2. Add the cinema to `CINEMA_CONFIG_REFERENCES` in `src/lib/cinemas.ts`.
 3. Keep `name` user-facing and source-clear, for example `Hibiya Toho` or `Shinjuku Piccadilly`.
 4. Set the private adapter config fields required by that adapter.
 5. Verify the single-cinema page for at least one date with real showtimes.
@@ -89,7 +98,9 @@ Do not trust provider movie ids for cross-source matching.
 3. Return only universal model objects from `schedule-model.ts`.
 4. Add a private config type and source entry in `src/lib/cinemas.ts`.
 5. Add a case to `src/lib/schedules.ts`.
-6. Reuse shared helpers from `schedule-model.ts` for language, format, identity, sorting, dates, and past-showtime filtering where possible.
+6. Build Movie Cards with `createMovieCard`, and reuse shared helpers from
+   `schedule-model.ts` for source-neutral language, format, dates, and
+   past-showtime filtering where possible.
 7. If the source needs new shared behavior, add it to `schedule-model.ts` only when it remains source-neutral.
 
 ## Verification

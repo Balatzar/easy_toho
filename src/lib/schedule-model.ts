@@ -50,6 +50,16 @@ export type MovieCard = {
   showtimes: Showtime[];
 };
 
+export type MovieCardInput = {
+  sourceId: ScheduleSourceId;
+  rawEnglishLabels: string[];
+  sourceLabels: string[];
+  artworkUrl: string | null;
+  runtimeMinutes: number | null;
+  rating: string | null;
+  showtimes: Showtime[];
+};
+
 export type MovieIdentityReference = Pick<
   MovieCard,
   "id" | "rawEnglishLabels" | "runtimeMinutes"
@@ -68,6 +78,35 @@ export type ScheduleResult =
     };
 
 type LoadedScheduleResult = Extract<ScheduleResult, { ok: true }>;
+
+export function createMovieCard({
+  sourceId,
+  rawEnglishLabels,
+  sourceLabels,
+  artworkUrl,
+  runtimeMinutes,
+  rating,
+  showtimes: unsortedShowtimes,
+}: MovieCardInput): MovieCard {
+  const showtimes = sortShowtimes(unsortedShowtimes);
+
+  return {
+    id: movieIdentityId({
+      rawEnglishLabels,
+      sourceLabels,
+      runtimeMinutes,
+      sourceId,
+    }),
+    title: displayTitle(rawEnglishLabels, sourceLabels),
+    rawEnglishLabels,
+    sourceLabels,
+    artworkUrl,
+    runtimeMinutes,
+    rating,
+    language: bestLanguage(showtimes),
+    showtimes,
+  };
+}
 
 export function firstSelectableDate(days: PlanningDay[]): string {
   const today = todayTokyo();
@@ -212,7 +251,7 @@ export function sameMovieIdentity(
   );
 }
 
-export function displayTitle(
+function displayTitle(
   rawEnglishLabels: string[],
   sourceLabels: string[],
 ): string {
@@ -252,7 +291,7 @@ export function languageLabel(language: LanguageRank): string {
   }
 }
 
-export function bestLanguage(showtimes: Showtime[]): LanguageRank {
+function bestLanguage(showtimes: Showtime[]): LanguageRank {
   return showtimes.reduce<LanguageRank>((best, showtime) => {
     return languageRankValue(showtime.language) < languageRankValue(best)
       ? showtime.language
@@ -304,7 +343,7 @@ export function sortMovieCards(cards: MovieCard[]): MovieCard[] {
   });
 }
 
-export function sortShowtimes(showtimes: Showtime[]): Showtime[] {
+function sortShowtimes(showtimes: Showtime[]): Showtime[] {
   return [...showtimes].sort((a, b) => {
     const language = languageRankValue(a.language) - languageRankValue(b.language);
     if (language !== 0) return language;

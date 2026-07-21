@@ -8,15 +8,12 @@ import {
   type ScheduleResult,
   type Showtime,
   type ShowtimeAvailability,
-  bestLanguage,
-  displayTitle,
+  createMovieCard,
   fallbackPlanningDays,
   hidePastShowtimes,
   languageLabel,
-  movieIdentityId,
   normalizeTime,
   sortMovieCards,
-  sortShowtimes,
   toHalfWidth,
   toPlanningDay,
   unique,
@@ -266,31 +263,23 @@ function parseShowtimes(
     });
   }
 
-  return sortShowtimes(showtimes);
+  return showtimes;
 }
 
 function toMovieCard(group: TjoyMovieGroup): MovieCard {
   const rawEnglishLabels = Array.from(group.rawEnglishLabels);
   const sourceLabels = Array.from(group.sourceLabels);
-  const showtimes = sortShowtimes(group.showtimes);
   const runtimeMinutes = preferredRuntime(group.runtimes);
 
-  return {
-    id: movieIdentityId({
-      rawEnglishLabels,
-      sourceLabels,
-      runtimeMinutes,
-      sourceId: "tjoy",
-    }),
-    title: displayTitle(rawEnglishLabels, sourceLabels),
+  return createMovieCard({
+    sourceId: "tjoy",
     rawEnglishLabels,
     sourceLabels,
     artworkUrl: group.artworkUrl,
     runtimeMinutes,
     rating: group.rating,
-    language: bestLanguage(showtimes),
-    showtimes,
-  };
+    showtimes: group.showtimes,
+  });
 }
 
 function parseFormatLabels(block: string): string[] {

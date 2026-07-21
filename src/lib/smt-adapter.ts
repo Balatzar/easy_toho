@@ -8,11 +8,10 @@ import {
   type ScheduleResult,
   type Showtime,
   type ShowtimeAvailability,
-  bestLanguage,
   classifyLanguage,
   compactDateToDate,
+  createMovieCard,
   dateToCompactDate,
-  displayTitle,
   extractFormats,
   fallbackPlanningDays,
   hidePastShowtimes,
@@ -20,7 +19,6 @@ import {
   movieIdentityId,
   normalizeTime,
   sortMovieCards,
-  sortShowtimes,
   toHalfWidth,
   toPlanningDay,
   upcomingPlanningDays,
@@ -34,7 +32,6 @@ const SMT_BASE = "https://www.smt-cinema.com";
 const SMT_SCHEDULE_BASE = `${SMT_BASE}/html/site/pc/schedule`;
 
 type SmtMovieGroup = {
-  id: string;
   rawEnglishLabels: Set<string>;
   sourceLabels: Set<string>;
   runtimeMinutes: number | null;
@@ -150,7 +147,6 @@ function parseMovieCards(html: string): MovieCard[] {
     let group = groups.get(movie.id);
     if (!group) {
       group = {
-        id: movie.id,
         rawEnglishLabels: new Set(),
         sourceLabels: new Set(),
         runtimeMinutes: movie.runtimeMinutes,
@@ -259,25 +255,22 @@ function parseShowtimes(
     });
   }
 
-  return sortShowtimes(showtimes);
+  return showtimes;
 }
 
 function toMovieCard(group: SmtMovieGroup): MovieCard {
   const rawEnglishLabels = Array.from(group.rawEnglishLabels);
   const sourceLabels = Array.from(group.sourceLabels);
-  const showtimes = sortShowtimes(group.showtimes);
 
-  return {
-    id: group.id,
-    title: displayTitle(rawEnglishLabels, sourceLabels),
+  return createMovieCard({
+    sourceId: "smt",
     rawEnglishLabels,
     sourceLabels,
     artworkUrl: group.artworkUrl,
     runtimeMinutes: group.runtimeMinutes,
     rating: group.rating,
-    language: bestLanguage(showtimes),
-    showtimes,
-  };
+    showtimes: group.showtimes,
+  });
 }
 
 function parseRuntimeMinutes(value: string): number | null {

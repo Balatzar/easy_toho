@@ -5,12 +5,9 @@ import {
   type ScheduleResult,
   type Showtime,
   type ShowtimeAvailability,
-  bestLanguage,
-  displayTitle,
+  createMovieCard,
   hidePastShowtimes,
-  movieIdentityId,
   sortMovieCards,
-  sortShowtimes,
   upcomingPlanningDays,
 } from "./schedule-model";
 import {
@@ -58,24 +55,15 @@ function toPlanningDay(day: TohoPlanningDay): PlanningDay {
 }
 
 function toMovieCard(card: TohoMovieCard): MovieCard {
-  const showtimes = sortShowtimes(card.showtimes.map(toShowtime));
-
-  return {
-    id: movieIdentityId({
-      rawEnglishLabels: card.rawEnglishLabels,
-      sourceLabels: card.sourceLabels,
-      runtimeMinutes: card.runtimeMinutes,
-      sourceId: "toho",
-    }),
-    title: displayTitle(card.rawEnglishLabels, card.sourceLabels),
+  return createMovieCard({
+    sourceId: "toho",
     rawEnglishLabels: card.rawEnglishLabels,
     sourceLabels: card.sourceLabels,
     artworkUrl: card.artworkUrl,
     runtimeMinutes: card.runtimeMinutes,
     rating: card.rating,
-    language: bestLanguage(showtimes),
-    showtimes,
-  };
+    showtimes: card.showtimes.map(toShowtime),
+  });
 }
 
 function toShowtime(showtime: TohoShowtime): Showtime {

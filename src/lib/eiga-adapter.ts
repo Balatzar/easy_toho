@@ -8,18 +8,15 @@ import {
   type ScheduleResult,
   type Showtime,
   type ShowtimeAvailability,
-  bestLanguage,
   compactDateToDate,
+  createMovieCard,
   dateToCompactDate,
-  displayTitle,
   extractFormats,
   fallbackPlanningDays,
   hidePastShowtimes,
   languageLabel,
-  movieIdentityId,
   normalizeTime,
   sortMovieCards,
-  sortShowtimes,
   toPlanningDay,
   unique,
   upcomingPlanningDays,
@@ -268,39 +265,30 @@ async function toMovieCard(movie: ParsedEigaMovie): Promise<MovieCard> {
   const rawEnglishLabels = detail?.originalTitle ? [detail.originalTitle] : [];
   const sourceLabels = [movie.sourceLabel];
   const runtimeMinutes = movie.runtimeMinutes ?? detail?.runtimeMinutes ?? null;
-  const showtimes = sortShowtimes(
-    movie.rawShowtimes.map((showtime) => {
-      const language = resolvedEigaLanguage(
-        showtime.language,
-        movie.sourceLabel,
-        detail,
-      );
+  const showtimes = movie.rawShowtimes.map((showtime) => {
+    const language = resolvedEigaLanguage(
+      showtime.language,
+      movie.sourceLabel,
+      detail,
+    );
 
-      return {
-        ...showtime,
-        end: showtime.explicitEnd ?? computedEnd(showtime.start, runtimeMinutes),
-        language,
-        languageLabel: languageLabel(language),
-      };
-    }),
-  );
+    return {
+      ...showtime,
+      end: showtime.explicitEnd ?? computedEnd(showtime.start, runtimeMinutes),
+      language,
+      languageLabel: languageLabel(language),
+    };
+  });
 
-  return {
-    id: movieIdentityId({
-      rawEnglishLabels,
-      sourceLabels,
-      runtimeMinutes,
-      sourceId: "eiga",
-    }),
-    title: displayTitle(rawEnglishLabels, sourceLabels),
+  return createMovieCard({
+    sourceId: "eiga",
     rawEnglishLabels,
     sourceLabels,
     artworkUrl: movie.artworkUrl,
     runtimeMinutes,
     rating: movie.rating,
-    language: bestLanguage(showtimes),
     showtimes,
-  };
+  });
 }
 
 function parseTypeLabels(block: string): string[] {
