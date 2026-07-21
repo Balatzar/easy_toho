@@ -41,36 +41,30 @@ export type CinemaConfig =
   | TjoyCinemaConfig
   | EigaCinemaConfig;
 
-const TOHO_SOURCE: ScheduleSource = {
-  id: "toho",
-  name: "TOHO Cinemas",
-};
+type WithoutSource<Config extends Cinema> = Config extends unknown
+  ? Omit<Config, "source">
+  : never;
 
-const SMT_SOURCE: ScheduleSource = {
-  id: "smt",
-  name: "SMT Cinemas",
-};
+type CinemaConfigReference = WithoutSource<CinemaConfig>;
 
-const TJOY_SOURCE: ScheduleSource = {
-  id: "tjoy",
-  name: "T-Joy",
-};
-
-const EIGA_SOURCE: ScheduleSource = {
-  id: "eiga",
-  name: "eiga.com",
+const SOURCE_BY_ADAPTER = {
+  toho: { id: "toho", name: "TOHO Cinemas" },
+  smt: { id: "smt", name: "SMT Cinemas" },
+  tjoy: { id: "tjoy", name: "T-Joy" },
+  eiga: { id: "eiga", name: "eiga.com" },
+} satisfies {
+  [Adapter in CinemaConfig["adapter"]]: ScheduleSource & { id: Adapter };
 };
 
 export const DEFAULT_CINEMA_SLUG = "ikebukuro";
 
-const CINEMA_CONFIGS: CinemaConfig[] = [
+const CINEMA_CONFIG_REFERENCES: CinemaConfigReference[] = [
   {
     slug: "hibiya",
     name: "Hibiya Toho",
     area: "Hibiya",
     coordinates: { lat: 35.6730666, lng: 139.7594149 },
     imax: "imaxLaser",
-    source: TOHO_SOURCE,
     adapter: "toho",
     scheduleCode: "081",
     theaterCode: "081",
@@ -81,7 +75,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Hibiya",
     coordinates: { lat: 35.6734305, lng: 139.7604959 },
     imax: null,
-    source: TOHO_SOURCE,
     adapter: "toho",
     scheduleCode: "081",
     theaterCode: "041",
@@ -92,7 +85,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Marunouchi",
     coordinates: { lat: 35.6736278, lng: 139.7627443 },
     imax: null,
-    source: SMT_SOURCE,
     adapter: "smt",
     theaterCode: "1052",
     schedulePrefix: "s0100",
@@ -103,7 +95,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Shinjuku",
     coordinates: { lat: 35.6951537, lng: 139.7019637 },
     imax: "imaxLaser",
-    source: TOHO_SOURCE,
     adapter: "toho",
     scheduleCode: "076",
     theaterCode: "076",
@@ -114,7 +105,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Shinjuku",
     coordinates: { lat: 35.6901173, lng: 139.7059134 },
     imax: null,
-    source: TJOY_SOURCE,
     adapter: "tjoy",
     sitePath: "shinjuku_wald9",
     theaterId: "140",
@@ -125,7 +115,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Oizumi",
     coordinates: { lat: 35.752383, lng: 139.594855 },
     imax: null,
-    source: TJOY_SOURCE,
     adapter: "tjoy",
     sitePath: "t-joy_seibu_oizumi",
     theaterId: "120",
@@ -136,7 +125,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Shinjuku",
     coordinates: { lat: 35.6926548, lng: 139.7037539 },
     imax: null,
-    source: SMT_SOURCE,
     adapter: "smt",
     theaterCode: "1051",
     schedulePrefix: "s0100",
@@ -147,7 +135,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Shinagawa",
     coordinates: { lat: 35.6276353, lng: 139.7367036 },
     imax: "imax",
-    source: TJOY_SOURCE,
     adapter: "tjoy",
     sitePath: "tjoy-prince-shinagawa",
     theaterId: "180",
@@ -158,7 +145,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Ikebukuro",
     coordinates: { lat: 35.7323633, lng: 139.7154911 },
     imax: null,
-    source: TOHO_SOURCE,
     adapter: "toho",
     scheduleCode: "084",
     theaterCode: "084",
@@ -169,7 +155,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Nihonbashi",
     coordinates: { lat: 35.6869786, lng: 139.7748976 },
     imax: null,
-    source: TOHO_SOURCE,
     adapter: "toho",
     scheduleCode: "073",
     theaterCode: "073",
@@ -180,7 +165,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Ueno",
     coordinates: { lat: 35.7068718, lng: 139.7731586 },
     imax: null,
-    source: TOHO_SOURCE,
     adapter: "toho",
     scheduleCode: "080",
     theaterCode: "080",
@@ -191,7 +175,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Roppongi",
     coordinates: { lat: 35.6595169, lng: 139.729227 },
     imax: null,
-    source: TOHO_SOURCE,
     adapter: "toho",
     scheduleCode: "009",
     theaterCode: "009",
@@ -202,7 +185,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Shibuya",
     coordinates: { lat: 35.6591861, lng: 139.6988833 },
     imax: null,
-    source: TOHO_SOURCE,
     adapter: "toho",
     scheduleCode: "043",
     theaterCode: "043",
@@ -213,7 +195,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Oimachi",
     coordinates: { lat: 35.6084367, lng: 139.7325967 },
     imax: null,
-    source: TOHO_SOURCE,
     adapter: "toho",
     scheduleCode: "090",
     theaterCode: "090",
@@ -224,7 +205,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Nishiarai",
     coordinates: { lat: 35.7745552, lng: 139.7856383 },
     imax: null,
-    source: TOHO_SOURCE,
     adapter: "toho",
     scheduleCode: "040",
     theaterCode: "040",
@@ -235,7 +215,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Minamiosawa",
     coordinates: { lat: 35.6148156, lng: 139.3805838 },
     imax: null,
-    source: TOHO_SOURCE,
     adapter: "toho",
     scheduleCode: "006",
     theaterCode: "006",
@@ -246,7 +225,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Fuchu",
     coordinates: { lat: 35.6713819, lng: 139.4809623 },
     imax: null,
-    source: TOHO_SOURCE,
     adapter: "toho",
     scheduleCode: "012",
     theaterCode: "012",
@@ -257,7 +235,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Tachikawa",
     coordinates: { lat: 35.7125451, lng: 139.4161569 },
     imax: "imax",
-    source: TOHO_SOURCE,
     adapter: "toho",
     scheduleCode: "085",
     theaterCode: "085",
@@ -268,7 +245,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Kinshicho",
     coordinates: { lat: 35.6963172, lng: 139.8156414 },
     imax: null,
-    source: TOHO_SOURCE,
     adapter: "toho",
     scheduleCode: "029",
     theaterCode: "029",
@@ -279,7 +255,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Ikebukuro",
     coordinates: { lat: 35.730497, lng: 139.716437 },
     imax: "imaxLaser",
-    source: EIGA_SOURCE,
     adapter: "eiga",
     theaterPath: "/theater/13/130501/3291/",
   },
@@ -289,7 +264,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Shinjuku",
     coordinates: { lat: 35.695921, lng: 139.70072 },
     imax: null,
-    source: EIGA_SOURCE,
     adapter: "eiga",
     theaterPath: "/theater/13/130201/3318/",
   },
@@ -299,7 +273,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Toyosu",
     coordinates: { lat: 35.655693, lng: 139.791796 },
     imax: null,
-    source: EIGA_SOURCE,
     adapter: "eiga",
     theaterPath: "/theater/13/130708/3079/",
   },
@@ -309,7 +282,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Ota",
     coordinates: { lat: 35.583436, lng: 139.738502 },
     imax: null,
-    source: EIGA_SOURCE,
     adapter: "eiga",
     theaterPath: "/theater/13/130704/3077/",
   },
@@ -319,7 +291,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Setagaya",
     coordinates: { lat: 35.611305, lng: 139.629419 },
     imax: null,
-    source: EIGA_SOURCE,
     adapter: "eiga",
     theaterPath: "/theater/13/130615/3264/",
   },
@@ -329,7 +300,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Shibuya",
     coordinates: { lat: 35.660156, lng: 139.702394 },
     imax: null,
-    source: EIGA_SOURCE,
     adapter: "eiga",
     theaterPath: "/theater/13/130301/3321/",
   },
@@ -339,7 +309,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Shibuya",
     coordinates: { lat: 35.66152, lng: 139.703002 },
     imax: null,
-    source: EIGA_SOURCE,
     adapter: "eiga",
     theaterPath: "/theater/13/130301/3042/",
   },
@@ -349,7 +318,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Shibuya",
     coordinates: { lat: 35.661337, lng: 139.70872 },
     imax: null,
-    source: EIGA_SOURCE,
     adapter: "eiga",
     theaterPath: "/theater/13/130301/3028/",
   },
@@ -359,7 +327,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Shibuya",
     coordinates: { lat: 35.659791, lng: 139.695281 },
     imax: null,
-    source: EIGA_SOURCE,
     adapter: "eiga",
     theaterPath: "/theater/13/130301/3044/",
   },
@@ -369,7 +336,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Shibuya",
     coordinates: { lat: 35.659791, lng: 139.695281 },
     imax: null,
-    source: EIGA_SOURCE,
     adapter: "eiga",
     theaterPath: "/theater/13/130301/3298/",
   },
@@ -379,7 +345,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Shibuya",
     coordinates: { lat: 35.660922, lng: 139.69949 },
     imax: null,
-    source: EIGA_SOURCE,
     adapter: "eiga",
     theaterPath: "/theater/13/130301/3283/",
   },
@@ -389,7 +354,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Shibuya",
     coordinates: { lat: 35.662194, lng: 139.698863 },
     imax: null,
-    source: EIGA_SOURCE,
     adapter: "eiga",
     theaterPath: "/theater/13/130301/3295/",
   },
@@ -399,7 +363,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Shibuya",
     coordinates: { lat: 35.661331, lng: 139.699768 },
     imax: null,
-    source: EIGA_SOURCE,
     adapter: "eiga",
     theaterPath: "/theater/13/130301/3041/",
   },
@@ -409,7 +372,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Ebisu",
     coordinates: { lat: 35.642292, lng: 139.713597 },
     imax: null,
-    source: EIGA_SOURCE,
     adapter: "eiga",
     theaterPath: "/theater/13/130608/3261/",
   },
@@ -419,7 +381,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Shinjuku",
     coordinates: { lat: 35.691199, lng: 139.701959 },
     imax: null,
-    source: EIGA_SOURCE,
     adapter: "eiga",
     theaterPath: "/theater/13/130201/3026/",
   },
@@ -429,7 +390,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Shinjuku",
     coordinates: { lat: 35.691423, lng: 139.705398 },
     imax: null,
-    source: EIGA_SOURCE,
     adapter: "eiga",
     theaterPath: "/theater/13/130201/3022/",
   },
@@ -439,7 +399,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Shinjuku",
     coordinates: { lat: 35.691596, lng: 139.705401 },
     imax: null,
-    source: EIGA_SOURCE,
     adapter: "eiga",
     theaterPath: "/theater/13/130201/3020/",
   },
@@ -449,7 +408,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Shinjuku",
     coordinates: { lat: 35.689571, lng: 139.702752 },
     imax: null,
-    source: EIGA_SOURCE,
     adapter: "eiga",
     theaterPath: "/theater/13/130201/3018/",
   },
@@ -459,7 +417,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Shinjuku",
     coordinates: { lat: 35.691596, lng: 139.705401 },
     imax: null,
-    source: EIGA_SOURCE,
     adapter: "eiga",
     theaterPath: "/theater/13/130201/3322/",
   },
@@ -469,7 +426,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Yurakucho",
     coordinates: { lat: 35.674173, lng: 139.763817 },
     imax: null,
-    source: EIGA_SOURCE,
     adapter: "eiga",
     theaterPath: "/theater/13/130102/3004/",
   },
@@ -479,7 +435,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Yurakucho",
     coordinates: { lat: 35.675214, lng: 139.763333 },
     imax: null,
-    source: EIGA_SOURCE,
     adapter: "eiga",
     theaterPath: "/theater/13/130102/3248/",
   },
@@ -489,7 +444,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Ginza",
     coordinates: { lat: 35.672332, lng: 139.764657 },
     imax: null,
-    source: EIGA_SOURCE,
     adapter: "eiga",
     theaterPath: "/theater/13/130101/3005/",
   },
@@ -499,7 +453,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Ikebukuro",
     coordinates: { lat: 35.731774, lng: 139.714584 },
     imax: null,
-    source: EIGA_SOURCE,
     adapter: "eiga",
     theaterPath: "/theater/13/130501/3055/",
   },
@@ -509,7 +462,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Ikebukuro",
     coordinates: { lat: 35.732439, lng: 139.710615 },
     imax: null,
-    source: EIGA_SOURCE,
     adapter: "eiga",
     theaterPath: "/theater/13/130501/3052/",
   },
@@ -519,7 +471,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Higashi-Nakano",
     coordinates: { lat: 35.706115, lng: 139.68474 },
     imax: null,
-    source: EIGA_SOURCE,
     adapter: "eiga",
     theaterPath: "/theater/13/130612/3292/",
   },
@@ -529,7 +480,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Kikukawa",
     coordinates: { lat: 35.688731, lng: 139.806456 },
     imax: null,
-    source: EIGA_SOURCE,
     adapter: "eiga",
     theaterPath: "/theater/13/130718/3319/",
   },
@@ -539,7 +489,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Meguro",
     coordinates: { lat: 35.634434, lng: 139.715784 },
     imax: null,
-    source: EIGA_SOURCE,
     adapter: "eiga",
     theaterPath: "/theater/13/130609/3069/",
   },
@@ -549,7 +498,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Takadanobaba",
     coordinates: { lat: 35.711352, lng: 139.704252 },
     imax: null,
-    source: EIGA_SOURCE,
     adapter: "eiga",
     theaterPath: "/theater/13/130611/3071/",
   },
@@ -559,7 +507,6 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Asagaya",
     coordinates: { lat: 35.705906, lng: 139.635467 },
     imax: null,
-    source: EIGA_SOURCE,
     adapter: "eiga",
     theaterPath: "/theater/13/130610/3070/",
   },
@@ -569,11 +516,12 @@ const CINEMA_CONFIGS: CinemaConfig[] = [
     area: "Kichijoji",
     coordinates: { lat: 35.703489, lng: 139.579595 },
     imax: null,
-    source: EIGA_SOURCE,
     adapter: "eiga",
     theaterPath: "/theater/13/130809/3285/",
   },
 ];
+
+const CINEMA_CONFIGS = CINEMA_CONFIG_REFERENCES.map(withScheduleSource);
 
 export const TOKYO_CINEMAS: Cinema[] = CINEMA_CONFIGS.map(toCinema);
 
@@ -610,4 +558,17 @@ function toCinema(config: CinemaConfig): Cinema {
     imax: config.imax,
     source: config.source,
   };
+}
+
+function withScheduleSource(config: CinemaConfigReference): CinemaConfig {
+  switch (config.adapter) {
+    case "toho":
+      return { ...config, source: SOURCE_BY_ADAPTER.toho };
+    case "smt":
+      return { ...config, source: SOURCE_BY_ADAPTER.smt };
+    case "tjoy":
+      return { ...config, source: SOURCE_BY_ADAPTER.tjoy };
+    case "eiga":
+      return { ...config, source: SOURCE_BY_ADAPTER.eiga };
+  }
 }
