@@ -75,6 +75,7 @@ test("parses Eiga releases into date groups", () => {
     id: "eiga:100001",
     sourceId: "100001",
     title: "The English Film",
+    originalOrEnglishTitle: null,
     posterUrl: "https://media.eiga.com/english/320.jpg",
     director: "John Smith",
     sourceUrl: "https://eiga.com/movie/100001/",
@@ -102,6 +103,9 @@ test("uses Eiga detail country and original title for the English filter", () =>
   const japaneseDetail = parseEigaReleaseDetailPage(`
     <p class="data">2026年製作／日本<br>劇場公開日：2026年8月7日</p>
   `);
+  const englishDetailWithoutTitle = parseEigaReleaseDetailPage(`
+    <p class="data">2026年製作／アメリカ<br>劇場公開日：2026年8月7日</p>
+  `);
   const frenchDetail = parseEigaReleaseDetailPage(`
     <p class="data">
       1983年製作／58分／フランス<br>
@@ -112,6 +116,7 @@ test("uses Eiga detail country and original title for the English filter", () =>
     id: "eiga:105870",
     sourceId: "105870",
     title: "ミニオンズ＆モンスターズ",
+    originalOrEnglishTitle: null,
     posterUrl: null,
     director: "ピエール・コフィン",
     sourceUrl: "https://eiga.com/movie/105870/",
@@ -127,6 +132,19 @@ test("uses Eiga detail country and original title for the English filter", () =>
     releaseForEnglishFilter(release, englishDetail)?.title,
     "Minions & Monsters",
   );
+  assert.equal(
+    releaseForEnglishFilter(release, englishDetail)?.originalOrEnglishTitle,
+    "Minions & Monsters",
+  );
   assert.equal(releaseForEnglishFilter(release, japaneseDetail), null);
   assert.equal(releaseForEnglishFilter(release, frenchDetail), null);
+  assert.equal(
+    releaseForEnglishFilter(release, englishDetailWithoutTitle)?.title,
+    "ミニオンズ＆モンスターズ",
+  );
+  assert.equal(
+    releaseForEnglishFilter(release, englishDetailWithoutTitle)
+      ?.originalOrEnglishTitle,
+    null,
+  );
 });

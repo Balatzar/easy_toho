@@ -176,13 +176,19 @@ async function AgendaContent({
         {releaseCount} {releaseCount === 1 ? "release" : "releases"} in Japan
       </p>
       {groups.map((group) => (
-        <ReleaseDateSection key={group.date} group={group} />
+        <ReleaseDateSection key={group.date} group={group} filter={filter} />
       ))}
     </div>
   );
 }
 
-function ReleaseDateSection({ group }: { group: JapanReleaseDateGroup }) {
+function ReleaseDateSection({
+  group,
+  filter,
+}: {
+  group: JapanReleaseDateGroup;
+  filter: AgendaFilter;
+}) {
   return (
     <section aria-labelledby={`date-${group.date}`}>
       <div className="mb-3 flex items-baseline justify-between gap-3 border-b border-stone-300 pb-2">
@@ -201,7 +207,11 @@ function ReleaseDateSection({ group }: { group: JapanReleaseDateGroup }) {
         {group.releases.map((release) => (
           <a
             key={release.id}
-            href={release.sourceUrl}
+            href={
+              filter === "english" && release.originalOrEnglishTitle
+                ? googleJapanReleaseSearchHref(release.originalOrEnglishTitle)
+                : release.sourceUrl
+            }
             target="_blank"
             rel="noreferrer"
             className="group rounded-md border border-stone-200 bg-white p-2 shadow-sm transition-colors hover:border-stone-400"
@@ -248,6 +258,11 @@ function releaseDateLabel(date: string): string {
     day: "numeric",
     timeZone: "UTC",
   }).format(new Date(`${date}T00:00:00Z`));
+}
+
+function googleJapanReleaseSearchHref(title: string): string {
+  const params = new URLSearchParams({ q: `${title} movie` });
+  return `https://www.google.com/search?${params}`;
 }
 
 function normalizeFilter(value: string | undefined): AgendaFilter {

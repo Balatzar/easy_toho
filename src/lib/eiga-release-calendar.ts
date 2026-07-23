@@ -6,6 +6,7 @@ export type JapanRelease = {
   id: string;
   sourceId: string;
   title: string;
+  originalOrEnglishTitle: string | null;
   posterUrl: string | null;
   director: string | null;
   sourceUrl: string;
@@ -108,6 +109,7 @@ function parseReleaseBlocks(content: string): JapanRelease[] {
       id: `eiga:${sourceId}`,
       sourceId,
       title,
+      originalOrEnglishTitle: null,
       posterUrl,
       director,
       sourceUrl: `${EIGA_BASE_URL}/movie/${sourceId}/`,
@@ -143,6 +145,7 @@ export function releaseForEnglishFilter(
   return {
     ...release,
     title: detail.originalOrEnglishTitle ?? release.title,
+    originalOrEnglishTitle: detail.originalOrEnglishTitle,
   };
 }
 
