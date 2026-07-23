@@ -18,7 +18,7 @@ import { fallbackPlanningDays, firstSelectableDate } from "@/lib/schedule-model"
 
 export const metadata: Metadata = createPageMetadata({
   title: "Agenda",
-  description: "A month-by-month calendar of upcoming movie releases in Japan.",
+  description: "A month-by-month calendar of upcoming film releases in Japan.",
 });
 
 type AgendaFilter = "all" | "english";
@@ -250,7 +250,9 @@ function filterReleaseGroups(
   return groups
     .map((group) => ({
       ...group,
-      releases: group.releases.filter((release) => release.likelyEnglish),
+      releases: group.releases.filter(
+        (release) => release.matchesEnglishFilter,
+      ),
     }))
     .filter((group) => group.releases.length > 0);
 }

@@ -1,4 +1,3 @@
-import { unstable_cache } from "next/cache";
 import {
   type JapanReleaseDateGroup,
   parseEigaReleaseCalendarPage,
@@ -24,27 +23,12 @@ export async function getJapanReleaseCalendar(
   month: string,
 ): Promise<JapanReleaseCalendarResult> {
   try {
-    return await getCachedJapanReleaseCalendar(month);
-  } catch (error) {
-    return {
-      ok: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Could not fetch the Japan release calendar right now.",
-      fetchedAt: new Date().toISOString(),
-    };
-  }
-}
-
-const getCachedJapanReleaseCalendar = unstable_cache(
-  async (month: string): Promise<Extract<JapanReleaseCalendarResult, { ok: true }>> => {
     const compactMonth = month.replace("-", "");
     const html = await fetchTextWithTimeout(
       `${EIGA_BASE_URL}/coming/${compactMonth}/`,
       {
         timeoutMs: 10_000,
-        cache: "no-store",
+        init: { next: { revalidate: RELEASE_CALENDAR_CACHE_SECONDS } },
         errorMessage: (response) =>
           `Eiga release calendar request failed with ${response.status}`,
       },
@@ -60,7 +44,14 @@ const getCachedJapanReleaseCalendar = unstable_cache(
       groups,
       fetchedAt: new Date().toISOString(),
     };
-  },
-  ["eiga-japan-release-calendar-v1"],
-  { revalidate: RELEASE_CALENDAR_CACHE_SECONDS },
-);
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Could not fetch the Japan release calendar right now.",
+      fetchedAt: new Date().toISOString(),
+    };
+  }
+}

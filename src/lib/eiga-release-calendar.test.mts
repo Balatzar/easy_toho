@@ -53,6 +53,13 @@ const sampleHtml = `
         <ul class="cast-staff"><li><span>ジョン・ドウ</span> 監督</li></ul>
       </div>
     </div>
+    <div id="mv100004" class="list-block list-block2">
+      <div class="img-box"><img alt="ブルーロック" src="/blue-lock.jpg"></div>
+      <div class="txt-box">
+        <h3 class="title"><a href="/movie/100004/">ブルーロック</a></h3>
+        <ul class="cast-staff"><li><span>瀧悠輔</span> 監督</li></ul>
+      </div>
+    </div>
   </section>
 `;
 
@@ -64,17 +71,16 @@ test("parses Eiga releases into date groups", () => {
   assert.equal(groups[0]?.releases.length, 2);
   assert.deepEqual(groups[0]?.releases[0], {
     id: "eiga:100001",
-    sourceId: "100001",
     title: "The English Film",
     posterUrl: "https://media.eiga.com/english/320.jpg",
     director: "John Smith",
-    synopsis: "A short synopsis.",
     sourceUrl: "https://eiga.com/movie/100001/",
-    likelyEnglish: true,
+    matchesEnglishFilter: true,
   });
-  assert.equal(groups[0]?.releases[1]?.likelyEnglish, false);
+  assert.equal(groups[0]?.releases[1]?.matchesEnglishFilter, false);
   assert.equal(groups[1]?.date, "2026-08-14");
-  assert.equal(groups[1]?.releases[0]?.likelyEnglish, true);
+  assert.equal(groups[1]?.releases[0]?.matchesEnglishFilter, true);
+  assert.equal(groups[1]?.releases[1]?.matchesEnglishFilter, false);
 });
 
 test("normalizes and shifts release months", () => {

@@ -2,20 +2,18 @@ import { htmlText } from "./source-adapter-support.ts";
 
 const EIGA_BASE_URL = "https://eiga.com";
 
-export type JapanTheatricalRelease = {
+export type JapanRelease = {
   id: string;
-  sourceId: string;
   title: string;
   posterUrl: string | null;
   director: string | null;
-  synopsis: string | null;
   sourceUrl: string;
-  likelyEnglish: boolean;
+  matchesEnglishFilter: boolean;
 };
 
 export type JapanReleaseDateGroup = {
   date: string;
-  releases: JapanTheatricalRelease[];
+  releases: JapanRelease[];
 };
 
 export function currentReleaseMonthTokyo(now = new Date()): string {
@@ -79,8 +77,8 @@ export function parseEigaReleaseCalendarPage(
   return groups;
 }
 
-function parseReleaseBlocks(content: string): JapanTheatricalRelease[] {
-  const releases: JapanTheatricalRelease[] = [];
+function parseReleaseBlocks(content: string): JapanRelease[] {
+  const releases: JapanRelease[] = [];
   const blockPattern =
     /<div\s+id="mv(\d+)"[^>]*class="[^"]*\blist-block2\b[^"]*"[^>]*>[\s\S]*?(?=<div\s+id="mv\d+"|$)/g;
 
@@ -96,11 +94,6 @@ function parseReleaseBlocks(content: string): JapanTheatricalRelease[] {
     const director = optionalText(
       block.match(/<li[^>]*>\s*<span[^>]*>([\s\S]*?)<\/span>\s*監督/)?.[1],
     );
-    const synopsis = optionalText(
-      block.match(
-        /<p[^>]*class="[^"]*\btxt\b[^"]*"[^>]*>([\s\S]*?)<\/p>/,
-      )?.[1],
-    );
     const imageAttributes = block.match(/<img\b([^>]*)>/)?.[1] ?? "";
     const posterUrl = normalizeUrl(
       attribute(imageAttributes, "src") ?? attribute(imageAttributes, "data-src"),
@@ -108,24 +101,26 @@ function parseReleaseBlocks(content: string): JapanTheatricalRelease[] {
 
     releases.push({
       id: `eiga:${sourceId}`,
-      sourceId,
       title,
       posterUrl,
       director,
-      synopsis,
       sourceUrl: `${EIGA_BASE_URL}/movie/${sourceId}/`,
-      likelyEnglish: isLikelyEnglish(title, director),
+      matchesEnglishFilter: matchesEnglishFilter(title, director),
     });
   }
 
   return releases;
 }
 
-function isLikelyEnglish(title: string, director: string | null): boolean {
-  const latinTitle = /[a-z]{2,}/i.test(title);
-  const longKatakanaRun = /[\u30a0-\u30ffー]{4,}/;
+function matchesEnglishFilter(title: string, director: string | null): boolean {
+  const latinLetterCount = title.match(/[a-z]/gi)?.length ?? 0;
+  const japaneseCharacterCount =
+    title.match(/[\u3040-\u30ff\u3400-\u9fff]/g)?.length ?? 0;
+  const latinDominantTitle =
+    latinLetterCount >= 4 && latinLetterCount >= japaneseCharacterCount;
+  const foreignDirector = /[\u30a0-\u30ffー]{4,}/.test(director ?? "");
 
-  return latinTitle || longKatakanaRun.test(title) || longKatakanaRun.test(director ?? "");
+  return latinDominantTitle || foreignDirector;
 }
 
 function optionalText(value: string | undefined): string | null {
