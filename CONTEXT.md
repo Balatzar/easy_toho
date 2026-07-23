@@ -48,6 +48,14 @@ _Avoid_: Screen kind, screen type
 A film that has at least one Cinema Screening.
 _Avoid_: Title
 
+**Japan Theatrical Release**:
+An announced Japanese release of a film on a calendar date, independently of whether a Tokyo Cinema currently publishes a Cinema Screening for it.
+_Avoid_: Movie, Cinema Screening
+
+**Release Calendar**:
+The month-scoped list of Japan Theatrical Releases, grouped by announced release date.
+_Avoid_: Planning Window, cinema schedule
+
 **Movie Identity**:
 The Tokyo Movie Times concept used to merge source-local movie records when different Schedule Sources appear to describe the same Movie. Screening variants such as subtitled, dubbed, premium-format, or special-event rows belong to one Movie Identity when the base film can be identified confidently.
 _Avoid_: Source movie code, canonical database ID

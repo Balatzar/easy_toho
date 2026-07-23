@@ -18,6 +18,17 @@ export function statsHref(date: string): string {
   return `/stats?${params}`;
 }
 
+export function agendaHref(
+  month?: string,
+  filter: "all" | "english" = "all",
+): string {
+  const params = new URLSearchParams();
+  if (month) params.set("month", month);
+  if (filter === "english") params.set("filter", "english");
+  const search = params.toString();
+  return `/agenda${search ? `?${search}` : ""}`;
+}
+
 export function movieHref(movieId: string, date: string): string {
   const params = new URLSearchParams({ date });
   return `/movies/${encodeURIComponent(movieId)}?${params}`;

@@ -1,7 +1,13 @@
-import { imaxHref, moviesHref, plannerHref, statsHref } from "@/lib/routes";
+import {
+  agendaHref,
+  imaxHref,
+  moviesHref,
+  plannerHref,
+  statsHref,
+} from "@/lib/routes";
 import { PendingLink } from "./pending-link";
 
-type Section = "cinemas" | "movies" | "imax" | "stats";
+type Section = "cinemas" | "agenda" | "movies" | "imax" | "stats";
 
 const activeClass =
   "rounded-md border border-red-700 bg-red-700 px-3 py-2 text-white shadow-sm hover:bg-red-800";
@@ -26,6 +32,13 @@ export function SectionNav({
         className={active === "cinemas" ? activeClass : inactiveClass}
       >
         Cinemas
+      </PendingLink>
+      <PendingLink
+        href={agendaHref()}
+        aria-current={active === "agenda" ? "page" : undefined}
+        className={active === "agenda" ? activeClass : inactiveClass}
+      >
+        Agenda
       </PendingLink>
       <PendingLink
         href={moviesHref(selectedDate)}
