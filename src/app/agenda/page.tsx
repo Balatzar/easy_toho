@@ -14,7 +14,7 @@ import {
   shiftReleaseMonth,
 } from "@/lib/eiga-release-calendar";
 import { agendaHref } from "@/lib/routes";
-import { fallbackPlanningDays, firstSelectableDate } from "@/lib/schedule-model";
+import { resolvePlanningSelection } from "@/lib/schedules";
 
 export const metadata: Metadata = createPageMetadata({
   title: "Agenda",
@@ -36,7 +36,7 @@ export default async function AgendaPage({
   const params = await searchParams;
   const month = normalizeReleaseMonth(firstParam(params.month));
   const filter = normalizeFilter(firstParam(params.filter));
-  const selectedDate = firstSelectableDate(fallbackPlanningDays());
+  const selectedDate = resolvePlanningSelection(undefined).selectedDate;
 
   return (
     <main className="min-h-screen bg-[#fbfaf7] text-stone-950">
