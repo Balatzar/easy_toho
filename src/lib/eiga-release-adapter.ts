@@ -1,10 +1,10 @@
 import {
   type JapanReleaseDateGroup,
+  EIGA_BASE_URL,
   parseEigaReleaseCalendarPage,
 } from "./eiga-release-calendar";
 import { fetchTextWithTimeout } from "./source-adapter-support";
 
-const EIGA_BASE_URL = "https://eiga.com";
 const RELEASE_CALENDAR_CACHE_SECONDS = 6 * 60 * 60;
 
 export type JapanReleaseCalendarResult =

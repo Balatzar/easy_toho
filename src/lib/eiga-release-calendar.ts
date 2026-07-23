@@ -1,6 +1,6 @@
 import { htmlText } from "./source-adapter-support.ts";
 
-const EIGA_BASE_URL = "https://eiga.com";
+export const EIGA_BASE_URL = "https://eiga.com";
 
 export type JapanRelease = {
   id: string;
