@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  parseEigaReleaseDetailPage,
   normalizeReleaseMonth,
   parseEigaReleaseCalendarPage,
+  releaseForEnglishFilter,
   shiftReleaseMonth,
 } from "./eiga-release-calendar.ts";
 
@@ -71,16 +73,14 @@ test("parses Eiga releases into date groups", () => {
   assert.equal(groups[0]?.releases.length, 2);
   assert.deepEqual(groups[0]?.releases[0], {
     id: "eiga:100001",
+    sourceId: "100001",
     title: "The English Film",
     posterUrl: "https://media.eiga.com/english/320.jpg",
     director: "John Smith",
     sourceUrl: "https://eiga.com/movie/100001/",
-    matchesEnglishFilter: true,
   });
-  assert.equal(groups[0]?.releases[1]?.matchesEnglishFilter, false);
   assert.equal(groups[1]?.date, "2026-08-14");
-  assert.equal(groups[1]?.releases[0]?.matchesEnglishFilter, true);
-  assert.equal(groups[1]?.releases[1]?.matchesEnglishFilter, false);
+  assert.equal(groups[1]?.releases.length, 2);
 });
 
 test("normalizes and shifts release months", () => {
@@ -89,4 +89,44 @@ test("normalizes and shifts release months", () => {
   assert.equal(normalizeReleaseMonth(undefined, "2026-07"), "2026-07");
   assert.equal(shiftReleaseMonth("2026-12", 1), "2027-01");
   assert.equal(shiftReleaseMonth("2026-01", -1), "2025-12");
+});
+
+test("uses Eiga detail country and original title for the English filter", () => {
+  const englishDetail = parseEigaReleaseDetailPage(`
+    <p class="data">
+      2026年製作／90分／G／アメリカ<br>
+      原題または英題：Minions &amp; Monsters<br>
+      劇場公開日：2026年8月7日
+    </p>
+  `);
+  const japaneseDetail = parseEigaReleaseDetailPage(`
+    <p class="data">2026年製作／日本<br>劇場公開日：2026年8月7日</p>
+  `);
+  const frenchDetail = parseEigaReleaseDetailPage(`
+    <p class="data">
+      1983年製作／58分／フランス<br>
+      原題または英題：Un jour Pina a demandé...<br>
+    </p>
+  `);
+  const release = {
+    id: "eiga:105870",
+    sourceId: "105870",
+    title: "ミニオンズ＆モンスターズ",
+    posterUrl: null,
+    director: "ピエール・コフィン",
+    sourceUrl: "https://eiga.com/movie/105870/",
+  };
+
+  assert.deepEqual(englishDetail, {
+    originalOrEnglishTitle: "Minions & Monsters",
+    productionCountry: "アメリカ",
+  });
+  assert.equal(japaneseDetail.productionCountry, "日本");
+  assert.equal(frenchDetail.productionCountry, "フランス");
+  assert.equal(
+    releaseForEnglishFilter(release, englishDetail)?.title,
+    "Minions & Monsters",
+  );
+  assert.equal(releaseForEnglishFilter(release, japaneseDetail), null);
+  assert.equal(releaseForEnglishFilter(release, frenchDetail), null);
 });

@@ -4,11 +4,16 @@ export const EIGA_BASE_URL = "https://eiga.com";
 
 export type JapanRelease = {
   id: string;
+  sourceId: string;
   title: string;
   posterUrl: string | null;
   director: string | null;
   sourceUrl: string;
-  matchesEnglishFilter: boolean;
+};
+
+export type EigaReleaseDetail = {
+  originalOrEnglishTitle: string | null;
+  productionCountry: string | null;
 };
 
 export type JapanReleaseDateGroup = {
@@ -101,26 +106,57 @@ function parseReleaseBlocks(content: string): JapanRelease[] {
 
     releases.push({
       id: `eiga:${sourceId}`,
+      sourceId,
       title,
       posterUrl,
       director,
       sourceUrl: `${EIGA_BASE_URL}/movie/${sourceId}/`,
-      matchesEnglishFilter: matchesEnglishFilter(title, director),
     });
   }
 
   return releases;
 }
 
-function matchesEnglishFilter(title: string, director: string | null): boolean {
-  const latinLetterCount = title.match(/[a-z]/gi)?.length ?? 0;
-  const japaneseCharacterCount =
-    title.match(/[\u3040-\u30ff\u3400-\u9fff]/g)?.length ?? 0;
-  const latinDominantTitle =
-    latinLetterCount >= 4 && latinLetterCount >= japaneseCharacterCount;
-  const foreignDirector = /[\u30a0-\u30ffー]{4,}/.test(director ?? "");
+export function parseEigaReleaseDetailPage(html: string): EigaReleaseDetail {
+  const dataBlock =
+    html.match(
+      /<p[^>]*class="[^"]*\bdata\b[^"]*"[^>]*>([\s\S]*?)<\/p>/,
+    )?.[1] ?? "";
+  const productionLine = htmlText(dataBlock.split(/<br\s*\/?>/i)[0] ?? "");
+  const productionCountry =
+    productionLine.split("／").at(-1)?.trim() || null;
+  const originalOrEnglishTitle = optionalText(
+    dataBlock.match(
+      /原題または英題[:：]\s*([\s\S]*?)(?=<br\s*\/?>|$)/i,
+    )?.[1],
+  );
 
-  return latinDominantTitle || foreignDirector;
+  return { originalOrEnglishTitle, productionCountry };
+}
+
+export function releaseForEnglishFilter(
+  release: JapanRelease,
+  detail: EigaReleaseDetail,
+): JapanRelease | null {
+  if (!isEnglishLanguageCountry(detail.productionCountry)) return null;
+
+  return {
+    ...release,
+    title: detail.originalOrEnglishTitle ?? release.title,
+  };
+}
+
+function isEnglishLanguageCountry(country: string | null): boolean {
+  if (!country) return false;
+
+  return [
+    "アメリカ",
+    "イギリス",
+    "カナダ",
+    "オーストラリア",
+    "ニュージーランド",
+    "アイルランド",
+  ].some((candidate) => country.includes(candidate));
 }
 
 function optionalText(value: string | undefined): string | null {

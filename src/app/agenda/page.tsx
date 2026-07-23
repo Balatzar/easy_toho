@@ -142,7 +142,7 @@ async function AgendaContent({
   month: string;
   filter: AgendaFilter;
 }) {
-  const result = await getJapanReleaseCalendar(month);
+  const result = await getJapanReleaseCalendar(month, filter);
 
   if (!result.ok) {
     return (
@@ -153,7 +153,7 @@ async function AgendaContent({
     );
   }
 
-  const groups = filterReleaseGroups(result.groups, filter);
+  const groups = result.groups;
   const releaseCount = groups.reduce(
     (total, group) => total + group.releases.length,
     0,
@@ -239,22 +239,6 @@ function AgendaLoadingState() {
       </div>
     </div>
   );
-}
-
-function filterReleaseGroups(
-  groups: JapanReleaseDateGroup[],
-  filter: AgendaFilter,
-): JapanReleaseDateGroup[] {
-  if (filter === "all") return groups;
-
-  return groups
-    .map((group) => ({
-      ...group,
-      releases: group.releases.filter(
-        (release) => release.matchesEnglishFilter,
-      ),
-    }))
-    .filter((group) => group.releases.length > 0);
 }
 
 function releaseDateLabel(date: string): string {

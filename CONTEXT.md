@@ -60,6 +60,10 @@ _Avoid_: Planning Window, cinema schedule
 The reader-facing screen that presents the Release Calendar.
 _Avoid_: Cinema schedule
 
+**English Release Filter**:
+The Agenda filter that keeps Japan Releases produced in an English-language country and displays Eiga's original or English title when available.
+_Avoid_: English-Watchable Movie, English-Watchable Screening
+
 **Movie Identity**:
 The Tokyo Movie Times concept used to merge source-local movie records when different Schedule Sources appear to describe the same Movie. Screening variants such as subtitled, dubbed, premium-format, or special-event rows belong to one Movie Identity when the base film can be identified confidently.
 _Avoid_: Source movie code, canonical database ID
